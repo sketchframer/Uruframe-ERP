@@ -1,8 +1,0 @@
-{
-  "name": "Structura ERP - Factory OS",
-  "description": "A real-time ERP system for profile and structure manufacturing, featuring a live dashboard, operator terminals, and internal messaging system.",
-  "requestFramePermissions": [
-    "camera",
-    "geolocation"
-  ]
-}
