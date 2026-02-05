@@ -14,6 +14,7 @@ interface ProjectActions {
   update: (id: string, updates: Partial<Project>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState & ProjectActions>()((set, get) => ({
@@ -50,5 +51,10 @@ export const useProjectStore = create<ProjectState & ProjectActions>()((set, get
     set({ isLoading: true });
     const projects = await projectRepository.getAll();
     set({ projects, isLoading: false });
+  },
+
+  refetch: async () => {
+    const projects = await projectRepository.getAll();
+    set({ projects });
   },
 }));

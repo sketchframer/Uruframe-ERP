@@ -14,6 +14,7 @@ interface ClientActions {
   update: (id: string, updates: Partial<Client>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useClientStore = create<ClientState & ClientActions>()((set, get) => ({
@@ -50,5 +51,10 @@ export const useClientStore = create<ClientState & ClientActions>()((set, get) =
     set({ isLoading: true });
     const clients = await clientRepository.getAll();
     set({ clients, isLoading: false });
+  },
+
+  refetch: async () => {
+    const clients = await clientRepository.getAll();
+    set({ clients });
   },
 }));

@@ -20,6 +20,7 @@ interface JobActions {
   update: (id: string, updates: Partial<Job>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useJobStore = create<JobState & JobActions>()((set, get) => ({
@@ -105,5 +106,10 @@ export const useJobStore = create<JobState & JobActions>()((set, get) => ({
     set({ isLoading: true });
     const jobs = await jobRepository.getAll();
     set({ jobs, isLoading: false });
+  },
+
+  refetch: async () => {
+    const jobs = await jobRepository.getAll();
+    set({ jobs });
   },
 }));

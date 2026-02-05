@@ -14,6 +14,7 @@ interface InventoryActions {
   update: (id: string, updates: Partial<InventoryItem>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useInventoryStore = create<InventoryState & InventoryActions>()((set, get) => ({
@@ -50,5 +51,10 @@ export const useInventoryStore = create<InventoryState & InventoryActions>()((se
     set({ isLoading: true });
     const inventory = await inventoryRepository.getAll();
     set({ inventory, isLoading: false });
+  },
+
+  refetch: async () => {
+    const inventory = await inventoryRepository.getAll();
+    set({ inventory });
   },
 }));

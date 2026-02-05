@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useUserStore } from '@/entities/user';
 import type { User } from '@/shared/types';
+import { USE_API } from '@/shared/api';
+import { loginWithPin, logout as apiLogout } from '../api/authService';
 import { validatePinFormat } from '../lib/pinValidation';
 
 export interface UseAuthReturn {
@@ -12,6 +14,7 @@ export interface UseAuthReturn {
 
 export function useAuth(): UseAuthReturn {
   const currentUser = useUserStore((s) => s.currentUser);
+  const setCurrentUser = useUserStore((s) => s.setCurrentUser);
   const loginAction = useUserStore((s) => s.login);
   const logoutAction = useUserStore((s) => s.logout);
 
@@ -20,18 +23,32 @@ export function useAuth(): UseAuthReturn {
       if (!validatePinFormat(pin)) {
         return { success: false, error: 'PIN must be 4 digits' };
       }
+      if (USE_API) {
+        try {
+          const response = await loginWithPin(pin);
+          setCurrentUser(response.user);
+          return { success: true };
+        } catch {
+          return { success: false, error: 'Invalid PIN' };
+        }
+      }
       const user = await loginAction(pin);
       if (user) {
         return { success: true };
       }
       return { success: false, error: 'Invalid PIN' };
     },
-    [loginAction]
+    [USE_API, loginAction, setCurrentUser]
   );
 
   const logout = useCallback(() => {
-    logoutAction();
-  }, [logoutAction]);
+    if (USE_API) {
+      apiLogout();
+      setCurrentUser(null);
+    } else {
+      logoutAction();
+    }
+  }, [USE_API, logoutAction, setCurrentUser]);
 
   return {
     currentUser,

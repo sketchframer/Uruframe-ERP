@@ -1,0 +1,1 @@
+# Structura backend app package

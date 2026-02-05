@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '@/shared/types';
+import { USE_API } from '@/shared/api';
 import { userRepository } from '../api/userRepository';
 import { INITIAL_USERS } from '@/shared/constants/seeds';
 
@@ -14,10 +15,12 @@ interface UserActions {
   fetchAll: () => Promise<void>;
   login: (pin: string) => Promise<User | null>;
   logout: () => void;
+  setCurrentUser: (user: User | null) => void;
   create: (user: Omit<User, 'id'>) => Promise<User>;
   update: (id: string, updates: Partial<User>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState & UserActions>()(
@@ -44,6 +47,8 @@ export const useUserStore = create<UserState & UserActions>()(
 
       logout: () => set({ currentUser: null }),
 
+      setCurrentUser: (user) => set({ currentUser: user }),
+
       create: async (user) => {
         const created = await userRepository.create(user);
         set((state) => ({ users: [...state.users, created] }));
@@ -65,13 +70,18 @@ export const useUserStore = create<UserState & UserActions>()(
       hydrate: async () => {
         set({ isLoading: true });
         let users = await userRepository.getAll();
-        if (users.length === 0) {
+        if (!USE_API && users.length === 0) {
           for (const user of INITIAL_USERS) {
             await userRepository.create(user);
           }
           users = INITIAL_USERS;
         }
         set({ users, isLoading: false });
+      },
+
+      refetch: async () => {
+        const users = await userRepository.getAll();
+        set({ users });
       },
     }),
     {

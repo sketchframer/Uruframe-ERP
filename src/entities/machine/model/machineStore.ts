@@ -23,6 +23,7 @@ interface MachineActions {
   update: (id: string, updates: Partial<Machine>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useMachineStore = create<MachineState & MachineActions>()((set, get) => ({
@@ -124,5 +125,10 @@ export const useMachineStore = create<MachineState & MachineActions>()((set, get
       machines = INITIAL_MACHINES;
     }
     set({ machines, isLoading: false });
+  },
+
+  refetch: async () => {
+    const machines = await machineRepository.getAll();
+    set({ machines });
   },
 }));

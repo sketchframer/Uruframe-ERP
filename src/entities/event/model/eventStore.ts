@@ -13,6 +13,7 @@ interface EventActions {
   add: (event: Omit<FactoryEvent, 'id' | 'timestamp'>) => Promise<FactoryEvent>;
   create: (event: Omit<FactoryEvent, 'id'>) => Promise<FactoryEvent>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useEventStore = create<EventState & EventActions>()((set, get) => ({
@@ -46,5 +47,10 @@ export const useEventStore = create<EventState & EventActions>()((set, get) => (
     set({ isLoading: true });
     const events = await eventRepository.getAll();
     set({ events, isLoading: false });
+  },
+
+  refetch: async () => {
+    const events = await eventRepository.getAll();
+    set({ events });
   },
 }));

@@ -16,6 +16,7 @@ interface AlertActions {
   update: (id: string, updates: Partial<SystemAlert>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useAlertStore = create<AlertState & AlertActions>()((set, get) => ({
@@ -63,5 +64,10 @@ export const useAlertStore = create<AlertState & AlertActions>()((set, get) => (
     set({ isLoading: true });
     const alerts = await alertRepository.getAll();
     set({ alerts, isLoading: false });
+  },
+
+  refetch: async () => {
+    const alerts = await alertRepository.getAll();
+    set({ alerts });
   },
 }));

@@ -1,5 +1,10 @@
-import { createLocalStorageRepository } from '@/shared/api/localStorageRepository';
+import {
+  createLocalStorageRepository,
+  createApiRepository,
+  USE_API,
+} from '@/shared/api';
 import type { InventoryItem } from '@/shared/types';
 
-export const inventoryRepository =
-  createLocalStorageRepository<InventoryItem>('inventory');
+export const inventoryRepository = USE_API
+  ? createApiRepository<InventoryItem>('/api/inventory')
+  : createLocalStorageRepository<InventoryItem>('inventory');

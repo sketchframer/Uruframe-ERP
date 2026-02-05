@@ -15,6 +15,7 @@ interface ProjectAccessoryActions {
   update: (id: string, updates: Partial<ProjectAccessory>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useProjectAccessoryStore = create<
@@ -63,5 +64,10 @@ export const useProjectAccessoryStore = create<
     set({ isLoading: true });
     const projectAccessories = await projectAccessoryRepository.getAll();
     set({ projectAccessories, isLoading: false });
+  },
+
+  refetch: async () => {
+    const projectAccessories = await projectAccessoryRepository.getAll();
+    set({ projectAccessories });
   },
 }));

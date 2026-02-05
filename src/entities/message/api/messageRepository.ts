@@ -1,5 +1,10 @@
-import { createLocalStorageRepository } from '@/shared/api/localStorageRepository';
+import {
+  createLocalStorageRepository,
+  createApiRepository,
+  USE_API,
+} from '@/shared/api';
 import type { SystemMessage } from '@/shared/types';
 
-export const messageRepository =
-  createLocalStorageRepository<SystemMessage>('messages');
+export const messageRepository = USE_API
+  ? createApiRepository<SystemMessage>('/api/messages')
+  : createLocalStorageRepository<SystemMessage>('messages');

@@ -1,4 +1,10 @@
-import { createLocalStorageRepository } from '@/shared/api/localStorageRepository';
+import {
+  createLocalStorageRepository,
+  createApiRepository,
+  USE_API,
+} from '@/shared/api';
 import type { User } from '@/shared/types';
 
-export const userRepository = createLocalStorageRepository<User>('users');
+export const userRepository = USE_API
+  ? createApiRepository<User>('/api/users')
+  : createLocalStorageRepository<User>('users');

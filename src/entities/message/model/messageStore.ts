@@ -16,6 +16,7 @@ interface MessageActions {
   update: (id: string, updates: Partial<SystemMessage>) => Promise<void>;
   delete: (id: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 export const useMessageStore = create<MessageState & MessageActions>()((set, get) => ({
@@ -63,5 +64,10 @@ export const useMessageStore = create<MessageState & MessageActions>()((set, get
     set({ isLoading: true });
     const messages = await messageRepository.getAll();
     set({ messages, isLoading: false });
+  },
+
+  refetch: async () => {
+    const messages = await messageRepository.getAll();
+    set({ messages });
   },
 }));
