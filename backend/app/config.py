@@ -2,16 +2,15 @@
 
 from pathlib import Path
 
-from dotenv import load_dotenv
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(BACKEND_ROOT / ".env")
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
+        env_file=BACKEND_ROOT / ".env",
         extra="ignore",
     )
 
