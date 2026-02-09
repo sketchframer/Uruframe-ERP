@@ -3,7 +3,7 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
@@ -15,14 +15,22 @@ engine = create_engine(
     echo=False,
 )
 
+
+@event.listens_for(engine, "connect")
+def _set_sqlite_pragma(dbapi_conn, connection_record):
+    """Enable FK enforcement on every new raw DBAPI connection."""
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def set_sqlite_pragmas(conn) -> None:
-    with conn.execute(text("PRAGMA journal_mode=WAL")) as _:
-        pass
-    with conn.execute(text("PRAGMA busy_timeout=5000")) as _:
-        pass
+    conn.execute(text("PRAGMA journal_mode=WAL"))
+    conn.execute(text("PRAGMA busy_timeout=5000"))
+    conn.execute(text("PRAGMA foreign_keys=ON"))
 
 
 @contextmanager

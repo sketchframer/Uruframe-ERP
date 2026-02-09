@@ -51,9 +51,17 @@ export function getErrorMessage(error: unknown): string {
     return 'Error del servidor. Intenta más tarde.';
   }
   if (error instanceof ApiError) {
-    const data = error.data as { message?: string; detail?: string } | undefined;
-    const msg = data?.message ?? data?.detail;
-    return typeof msg === 'string' ? msg : error.message;
+    const data = error.data as
+      | { message?: string; detail?: string | Array<{ msg?: string; message?: string }> }
+      | undefined;
+    const raw = data?.message ?? data?.detail;
+    if (typeof raw === 'string') return raw;
+    if (Array.isArray(raw) && raw.length > 0) {
+      const first = raw[0];
+      const msg = first?.msg ?? first?.message;
+      return typeof msg === 'string' ? msg : error.message;
+    }
+    return error.message;
   }
   if (error instanceof Error) {
     return error.message;

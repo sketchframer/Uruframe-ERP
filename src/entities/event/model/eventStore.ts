@@ -6,6 +6,7 @@ import { generateEventId } from '@/shared/utils/id';
 interface EventState {
   events: FactoryEvent[];
   isLoading: boolean;
+  error: string | null;
 }
 
 interface EventActions {
@@ -16,37 +17,58 @@ interface EventActions {
   refetch: () => Promise<void>;
 }
 
-export const useEventStore = create<EventState & EventActions>()((set, get) => ({
+export const useEventStore = create<EventState & EventActions>()((set) => ({
   events: [],
   isLoading: false,
+  error: null,
 
   fetchAll: async () => {
-    set({ isLoading: true });
-    const events = await eventRepository.getAll();
-    set({ events, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const events = await eventRepository.getAll();
+      set({ events, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   add: async (event) => {
-    const newEvent: FactoryEvent = {
-      ...event,
-      id: generateEventId(),
-      timestamp: new Date().toISOString(),
-    };
-    await eventRepository.create(newEvent);
-    set((state) => ({ events: [newEvent, ...state.events] }));
-    return newEvent;
+    set({ error: null });
+    try {
+      const newEvent: FactoryEvent = {
+        ...event,
+        id: generateEventId(),
+        timestamp: new Date().toISOString(),
+      };
+      await eventRepository.create(newEvent);
+      set((state) => ({ events: [newEvent, ...state.events] }));
+      return newEvent;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   create: async (event) => {
-    const created = await eventRepository.create(event);
-    set((state) => ({ events: [created, ...state.events] }));
-    return created;
+    set({ error: null });
+    try {
+      const created = await eventRepository.create(event);
+      set((state) => ({ events: [created, ...state.events] }));
+      return created;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   hydrate: async () => {
-    set({ isLoading: true });
-    const events = await eventRepository.getAll();
-    set({ events, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const events = await eventRepository.getAll();
+      set({ events, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   refetch: async () => {

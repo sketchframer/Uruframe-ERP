@@ -12,6 +12,8 @@ export { Slider } from './primitives/Slider';
 export type { SliderProps } from './primitives/Slider';
 export { Tabs } from './primitives/Tabs';
 export type { TabsProps, TabItem } from './primitives/Tabs';
+export { Textarea } from './primitives/Textarea';
+export type { TextareaProps } from './primitives/Textarea';
 
 // Layout
 export { Card, CardHeader, CardTitle, CardDescription } from './layout/Card';
@@ -39,6 +41,8 @@ export { StatusBadge } from './feedback/StatusBadge';
 export type { StatusBadgeProps } from './feedback/StatusBadge';
 export { Spinner, FullPageSpinner } from './feedback/Spinner';
 export type { SpinnerProps } from './feedback/Spinner';
+export { ToastProvider, useToast, toast } from './feedback/Toast';
+export type { ToastType } from './feedback/Toast';
 
 // Overlay
 export { Modal, ModalFooter } from './overlay/Modal';

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { User, Role } from '@/shared/types';
 import { useUserStore } from '@/entities/user';
-import { EmptyState, TwoColumnLayout, SelectableList, Button, Input, Select } from '@/shared/ui';
+import { useForm } from '@/shared/hooks';
+import { EmptyState, TwoColumnLayout, SelectableList, Button, Input, Select, toast, FullPageSpinner } from '@/shared/ui';
 import { UserCircle, Plus, Save, Trash2, KeyRound } from 'lucide-react';
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
@@ -12,6 +13,7 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
 
 export function UsersPage() {
   const users = useUserStore((s) => s.users);
+  const isLoading = useUserStore((s) => s.isLoading);
   const fetchAll = useUserStore((s) => s.fetchAll);
   const create = useUserStore((s) => s.create);
   const update = useUserStore((s) => s.update);
@@ -19,7 +21,29 @@ export function UsersPage() {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<User>>({ name: '', role: 'OPERATOR', pin: '' });
+
+  const form = useForm({
+    initialValues: { name: '', role: 'OPERATOR' as string, pin: '' },
+    onSubmit: async (values) => {
+      if (!values.name || !values.pin) return;
+      if (selectedUser) {
+        await update(selectedUser.id, {
+          name: values.name,
+          role: (values.role as Role) ?? 'OPERATOR',
+          pin: values.pin,
+        });
+      } else {
+        await create({
+          name: values.name,
+          role: (values.role as Role) ?? 'OPERATOR',
+          pin: values.pin,
+        });
+      }
+      toast.success(selectedUser ? 'Usuario actualizado' : 'Usuario creado');
+      setIsEditing(false);
+      setSelectedUser(null);
+    },
+  });
 
   useEffect(() => {
     fetchAll();
@@ -27,33 +51,14 @@ export function UsersPage() {
 
   const handleNew = () => {
     setSelectedUser(null);
-    setFormData({ name: '', role: 'OPERATOR', pin: '' });
+    form.reset();
     setIsEditing(true);
   };
 
   const handleSelect = (u: User) => {
     setSelectedUser(u);
-    setFormData(u);
+    form.setValues({ name: u.name, role: u.role, pin: u.pin });
     setIsEditing(false);
-  };
-
-  const handleSave = async () => {
-    if (!formData.name || !formData.pin) return;
-    if (selectedUser) {
-      await update(selectedUser.id, {
-        name: formData.name,
-        role: formData.role ?? 'OPERATOR',
-        pin: formData.pin,
-      });
-    } else {
-      await create({
-        name: formData.name,
-        role: (formData.role as Role) ?? 'OPERATOR',
-        pin: formData.pin,
-      });
-    }
-    setIsEditing(false);
-    setSelectedUser(null);
   };
 
   const handleDelete = () => {
@@ -63,6 +68,8 @@ export function UsersPage() {
       setIsEditing(false);
     }
   };
+
+  if (isLoading) return <FullPageSpinner />;
 
   return (
     <TwoColumnLayout
@@ -100,7 +107,7 @@ export function UsersPage() {
               </h2>
               <div className="flex gap-2">
                 {isEditing ? (
-                  <Button variant="primary" size="sm" leftIcon={<Save className="w-4 h-4" />} onClick={handleSave}>
+                  <Button variant="primary" size="sm" leftIcon={<Save className="w-4 h-4" />} onClick={form.handleSubmit} isLoading={form.isSubmitting}>
                     Guardar
                   </Button>
                 ) : (
@@ -123,21 +130,21 @@ export function UsersPage() {
               <div className="grid grid-cols-2 gap-6">
                 <Input
                   label="Nombre"
-                  value={formData.name || ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={form.values.name}
+                  onChange={(e) => form.handleChange('name', e.target.value)}
                 />
                 <Select
                   label="Rol"
                   options={ROLE_OPTIONS}
-                  value={formData.role ?? 'OPERATOR'}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
+                  value={form.values.role}
+                  onChange={(e) => form.handleChange('role', e.target.value)}
                 />
                 <div className="col-span-2">
                   <Input
                     label="PIN (4 dígitos)"
                     type="password"
-                    value={formData.pin || ''}
-                    onChange={(e) => setFormData({ ...formData, pin: e.target.value.slice(0, 4) })}
+                    value={form.values.pin}
+                    onChange={(e) => form.handleChange('pin', e.target.value.slice(0, 4))}
                     maxLength={4}
                   />
                 </div>

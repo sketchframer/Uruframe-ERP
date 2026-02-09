@@ -176,6 +176,7 @@ def main() -> None:
     init_db_and_pragmas()
     db = SessionLocal()
     try:
+        # Seed in FK-safe order: users first (referenced by messages), then machines
         seed_users(db, args.reset)
         seed_machines(db, args.reset)
         print("Seed done.")

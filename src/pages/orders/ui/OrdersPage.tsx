@@ -1,14 +1,21 @@
-import { useState } from 'react';
-import type { Job, Project } from '@/shared/types';
+import { useState, useMemo } from 'react';
+import type { Job } from '@/shared/types';
 import { useJobStore } from '@/entities/job';
 import { useProjectStore } from '@/entities/project';
 import { useMachineStore } from '@/entities/machine';
 import { useUserStore } from '@/entities/user';
-import { EmptyState, SelectableList, Button, Input } from '@/shared/ui';
+import { useForm } from '@/shared/hooks';
+import { EmptyState, SelectableList, Button, Input, Select, toast, FullPageSpinner } from '@/shared/ui';
 import { Plus, Trash2, ListTodo, Search, X, Pencil } from 'lucide-react';
+
+const EMPTY_JOB = {
+  projectId: '', assignedMachineId: '', productName: '', targetQuantity: 0,
+  unit: 'units', operatorIds: [] as string[],
+};
 
 export function OrdersPage() {
   const jobs = useJobStore((s) => s.jobs);
+  const isLoading = useJobStore((s) => s.isLoading);
   const projects = useProjectStore((s) => s.projects);
   const machines = useMachineStore((s) => s.machines);
   const users = useUserStore((s) => s.users);
@@ -16,56 +23,75 @@ export function OrdersPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const [editFormData, setEditFormData] = useState<Partial<Job>>({});
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [newJob, setNewJob] = useState<Partial<Job>>({
-    productName: '', targetQuantity: 0, unit: 'units', status: 'PENDING', machineType: 'CONFORMADORA', isStock: false, notes: '', requiresPanelizado: false, operatorIds: []
+  const projectOptions = useMemo(() => projects.map(p => ({ value: p.id, label: p.name })), [projects]);
+  const machineOptions = useMemo(() => machines.map(m => ({ value: m.id, label: m.name })), [machines]);
+  const operators = useMemo(() => users.filter(u => u.role === 'OPERATOR'), [users]);
+
+  const createForm = useForm({
+    initialValues: EMPTY_JOB,
+    onSubmit: async (values) => {
+      if (!values.projectId || !values.assignedMachineId || !values.productName || !values.targetQuantity) return;
+      const selectedMachine = machines.find((m) => m.id === values.assignedMachineId);
+      await jobStore.create({
+        projectId: values.projectId,
+        productName: values.productName,
+        targetQuantity: Number(values.targetQuantity),
+        completedQuantity: 0,
+        unit: values.unit || 'units',
+        machineType: selectedMachine?.type ?? 'CONFORMADORA',
+        status: 'PENDING',
+        priorityIndex: jobs.length + 1,
+        assignedMachineId: values.assignedMachineId,
+        operatorIds: values.operatorIds ?? [],
+        isStock: false,
+      });
+      toast.success('Orden creada correctamente');
+      setIsCreating(false);
+      createForm.reset();
+    },
   });
 
-  const handleCreateJob = async () => {
-    if (!newJob.projectId || !newJob.assignedMachineId || !newJob.productName || !newJob.targetQuantity) return;
-    const selectedMachine = machines.find((m) => m.id === newJob.assignedMachineId);
-    await jobStore.create({
-      projectId: newJob.projectId,
-      productName: newJob.productName!,
-      targetQuantity: Number(newJob.targetQuantity),
-      completedQuantity: 0,
-      unit: newJob.unit || 'units',
-      machineType: selectedMachine?.type ?? 'CONFORMADORA',
-      status: 'PENDING',
-      priorityIndex: jobs.length + 1,
-      assignedMachineId: newJob.assignedMachineId,
-      operatorIds: newJob.operatorIds ?? [],
-      isStock: newJob.isStock,
-      fileUrl: newJob.fileUrl,
-      notes: newJob.notes,
-    });
-    setIsCreating(false);
-    resetForm();
-  };
+  const editForm = useForm({
+    initialValues: EMPTY_JOB,
+    onSubmit: async (values) => {
+      if (!selectedJob || !values.projectId || !values.assignedMachineId || !values.productName || !values.targetQuantity) return;
+      const selectedMachine = machines.find((m) => m.id === values.assignedMachineId);
+      const updates: Partial<Job> = {
+        projectId: values.projectId,
+        assignedMachineId: values.assignedMachineId,
+        machineType: selectedMachine?.type ?? selectedJob.machineType,
+        operatorIds: values.operatorIds ?? [],
+        productName: values.productName,
+        targetQuantity: Number(values.targetQuantity),
+        unit: values.unit ?? 'units',
+      };
+      await jobStore.update(selectedJob.id, updates);
+      const updated = jobStore.getById(selectedJob.id);
+      if (updated) setSelectedJob(updated);
+      toast.success('Orden actualizada');
+      setIsEditingOrder(false);
+    },
+  });
 
-  const resetForm = () => {
-      setNewJob({ productName: '', targetQuantity: 0, unit: 'units', status: 'PENDING', machineType: 'CONFORMADORA', isStock: false, notes: '', operatorIds: [] });
-  };
-
-  const toggleOperator = (opId: string) => {
-      const current = newJob.operatorIds || [];
-      const updated = current.includes(opId) ? current.filter(id => id !== opId) : [...current, opId];
-      setNewJob({...newJob, operatorIds: updated});
+  const toggleCreateOperator = (opId: string) => {
+    const current = createForm.values.operatorIds || [];
+    const updated = current.includes(opId) ? current.filter(id => id !== opId) : [...current, opId];
+    createForm.setValues({ ...createForm.values, operatorIds: updated });
   };
 
   const toggleEditOperator = (opId: string) => {
-    const current = editFormData.operatorIds ?? [];
-    const updated = current.includes(opId) ? current.filter((id) => id !== opId) : [...current, opId];
-    setEditFormData({ ...editFormData, operatorIds: updated });
+    const current = editForm.values.operatorIds || [];
+    const updated = current.includes(opId) ? current.filter(id => id !== opId) : [...current, opId];
+    editForm.setValues({ ...editForm.values, operatorIds: updated });
   };
 
   const startEditingOrder = () => {
     if (!selectedJob) return;
-    setEditFormData({
+    editForm.setValues({
       projectId: selectedJob.projectId,
-      assignedMachineId: selectedJob.assignedMachineId,
+      assignedMachineId: selectedJob.assignedMachineId ?? '',
       operatorIds: selectedJob.operatorIds ?? [],
       productName: selectedJob.productName,
       targetQuantity: selectedJob.targetQuantity,
@@ -76,31 +102,14 @@ export function OrdersPage() {
 
   const cancelEditOrder = () => {
     setIsEditingOrder(false);
-    setEditFormData({});
-  };
-
-  const saveEditOrder = async () => {
-    if (!selectedJob || !editFormData.projectId || !editFormData.assignedMachineId || !editFormData.productName || editFormData.targetQuantity == null) return;
-    const selectedMachine = machines.find((m) => m.id === editFormData.assignedMachineId);
-    const updates: Partial<Job> = {
-      projectId: editFormData.projectId,
-      assignedMachineId: editFormData.assignedMachineId,
-      machineType: selectedMachine?.type ?? selectedJob.machineType,
-      operatorIds: editFormData.operatorIds ?? [],
-      productName: editFormData.productName,
-      targetQuantity: Number(editFormData.targetQuantity),
-      unit: editFormData.unit ?? 'units',
-    };
-    await jobStore.update(selectedJob.id, updates);
-    const updated = jobStore.getById(selectedJob.id);
-    if (updated) setSelectedJob(updated);
-    setIsEditingOrder(false);
-    setEditFormData({});
+    editForm.reset();
   };
 
   const filteredJobs = jobs.filter((j) =>
     j.productName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) return <FullPageSpinner />;
 
   return (
     <div className="flex h-full gap-6 animate-fade-in overflow-hidden p-2">
@@ -118,17 +127,13 @@ export function OrdersPage() {
            }}
            getItemId={(j) => j.id}
            title={
-             <>
-              
-               <Input
-                 placeholder="Buscar..."
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 leftIcon={<Search className="w-4 h-4" />}
-                 className="mt-4"
-               />
-               
-             </>
+             <Input
+               placeholder="Buscar..."
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               leftIcon={<Search className="w-4 h-4" />}
+               className="mt-4"
+             />
            }
            renderItem={(job) => (
              <>
@@ -147,48 +152,39 @@ export function OrdersPage() {
                     <div className="space-y-6 max-w-2xl">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Proyecto</label>
-                                <select className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" value={newJob.projectId} onChange={e => setNewJob({...newJob, projectId: e.target.value})}>
-                                    <option value="">Seleccione Proyecto...</option>
-                                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
+                                <Select label="Proyecto" options={projectOptions} placeholder="Seleccione Proyecto..." value={createForm.values.projectId} onChange={(e) => createForm.handleChange('projectId', e.target.value)} />
                             </div>
+                            <Select label="Unidad de Planta" options={machineOptions} placeholder="Seleccione Estación..." value={createForm.values.assignedMachineId} onChange={(e) => createForm.handleChange('assignedMachineId', e.target.value)} />
                             <div>
-                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Unidad de Planta</label>
-                                <select className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" value={newJob.assignedMachineId} onChange={e => setNewJob({...newJob, assignedMachineId: e.target.value})}>
-                                    <option value="">Seleccione Estación...</option>
-                                    {machines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Operarios Específicos (Opcional)</label>
+                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Operarios Específicos (Opcional)</label>
                                 <div className="flex flex-wrap gap-2">
-                                    {users.filter(u => u.role === 'OPERATOR').map(u => (
-                                        <button 
-                                            key={u.id} 
-                                            onClick={() => toggleOperator(u.id)}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${newJob.operatorIds?.includes(u.id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-500'}`}
+                                    {operators.map(u => (
+                                        <Button
+                                            key={u.id}
+                                            variant={createForm.values.operatorIds?.includes(u.id) ? 'primary' : 'outline'}
+                                            size="sm"
+                                            onClick={() => toggleCreateOperator(u.id)}
                                         >
                                             {u.name.split(' ')[0]}
-                                        </button>
+                                        </Button>
                                     ))}
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="space-y-4">
-                            <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" placeholder="Nombre de la Orden" value={newJob.productName} onChange={e => setNewJob({...newJob, productName: e.target.value})} />
+                            <Input label="Nombre de la Orden" value={createForm.values.productName} onChange={(e) => createForm.handleChange('productName', e.target.value)} />
                             <div className="grid grid-cols-2 gap-4">
-                                <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" placeholder="Cantidad" value={newJob.targetQuantity} onChange={e => setNewJob({...newJob, targetQuantity: Number(e.target.value)})} />
-                                <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" placeholder="Unidad (m, kg, u)" value={newJob.unit} onChange={e => setNewJob({...newJob, unit: e.target.value})} />
+                                <Input label="Cantidad" type="number" value={createForm.values.targetQuantity} onChange={(e) => createForm.handleChange('targetQuantity', Number(e.target.value))} />
+                                <Input label="Unidad" placeholder="m, kg, u" value={createForm.values.unit} onChange={(e) => createForm.handleChange('unit', e.target.value)} />
                             </div>
                         </div>
 
                         <div className="flex gap-3">
-                            <Button variant="ghost" size="lg" className="flex-1" onClick={() => { setIsCreating(false); setSelectedJob(null); resetForm(); }}>
+                            <Button variant="ghost" size="lg" className="flex-1" onClick={() => { setIsCreating(false); setSelectedJob(null); createForm.reset(); }}>
                                 Cancelar
                             </Button>
-                            <Button variant="primary" size="lg" className="flex-1" onClick={handleCreateJob}>
+                            <Button variant="primary" size="lg" className="flex-1" onClick={createForm.handleSubmit} isLoading={createForm.isSubmitting}>
                                 Crear Orden y Vincular
                             </Button>
                         </div>
@@ -200,47 +196,37 @@ export function OrdersPage() {
                     <div className="space-y-6 max-w-2xl">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Proyecto</label>
-                                <select className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" value={editFormData.projectId ?? ''} onChange={(e) => setEditFormData({ ...editFormData, projectId: e.target.value })}>
-                                    <option value="">Seleccione Proyecto...</option>
-                                    {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
+                                <Select label="Proyecto" options={projectOptions} placeholder="Seleccione Proyecto..." value={editForm.values.projectId} onChange={(e) => editForm.handleChange('projectId', e.target.value)} />
                             </div>
+                            <Select label="Unidad de Planta" options={machineOptions} placeholder="Seleccione Estación..." value={editForm.values.assignedMachineId} onChange={(e) => editForm.handleChange('assignedMachineId', e.target.value)} />
                             <div>
-                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Unidad de Planta</label>
-                                <select className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" value={editFormData.assignedMachineId ?? ''} onChange={(e) => setEditFormData({ ...editFormData, assignedMachineId: e.target.value })}>
-                                    <option value="">Seleccione Estación...</option>
-                                    {machines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Operarios Específicos (Opcional)</label>
+                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Operarios Específicos (Opcional)</label>
                                 <div className="flex flex-wrap gap-2">
-                                    {users.filter((u) => u.role === 'OPERATOR').map((u) => (
-                                        <button
+                                    {operators.map((u) => (
+                                        <Button
                                             key={u.id}
-                                            type="button"
+                                            variant={editForm.values.operatorIds?.includes(u.id) ? 'primary' : 'outline'}
+                                            size="sm"
                                             onClick={() => toggleEditOperator(u.id)}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${editFormData.operatorIds?.includes(u.id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-500'}`}
                                         >
                                             {u.name.split(' ')[0]}
-                                        </button>
+                                        </Button>
                                     ))}
                                 </div>
                             </div>
                         </div>
                         <div className="space-y-4">
-                            <Input placeholder="Nombre de la Orden" value={editFormData.productName ?? ''} onChange={(e) => setEditFormData({ ...editFormData, productName: e.target.value })} />
+                            <Input label="Nombre de la Orden" value={editForm.values.productName} onChange={(e) => editForm.handleChange('productName', e.target.value)} />
                             <div className="grid grid-cols-2 gap-4">
-                                <Input type="number" placeholder="Cantidad" value={editFormData.targetQuantity ?? ''} onChange={(e) => setEditFormData({ ...editFormData, targetQuantity: Number(e.target.value) })} />
-                                <Input placeholder="Unidad (m, kg, u)" value={editFormData.unit ?? ''} onChange={(e) => setEditFormData({ ...editFormData, unit: e.target.value })} />
+                                <Input label="Cantidad" type="number" value={editForm.values.targetQuantity} onChange={(e) => editForm.handleChange('targetQuantity', Number(e.target.value))} />
+                                <Input label="Unidad" placeholder="m, kg, u" value={editForm.values.unit} onChange={(e) => editForm.handleChange('unit', e.target.value)} />
                             </div>
                         </div>
                         <div className="flex gap-3">
                             <Button variant="ghost" size="lg" className="flex-1" onClick={cancelEditOrder}>
                                 Cancelar
                             </Button>
-                            <Button variant="primary" size="lg" className="flex-1" onClick={saveEditOrder}>
+                            <Button variant="primary" size="lg" className="flex-1" onClick={editForm.handleSubmit} isLoading={editForm.isSubmitting}>
                                 Guardar
                             </Button>
                         </div>
@@ -257,13 +243,13 @@ export function OrdersPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" leftIcon={<X className="w-4 h-4" />} onClick={() => setSelectedJob(null)} aria-label="Cerrar">
+                            <Button variant="ghost" size="sm" leftIcon={<X className="w-4 h-4" />} onClick={() => setSelectedJob(null)}>
                                 Cerrar
                             </Button>
-                            <Button variant="secondary" size="sm" leftIcon={<Pencil className="w-4 h-4" />} onClick={startEditingOrder} aria-label="Editar">
+                            <Button variant="secondary" size="sm" leftIcon={<Pencil className="w-4 h-4" />} onClick={startEditingOrder}>
                                 Editar
                             </Button>
-                            <Button variant="danger" size="sm" leftIcon={<Trash2 className="w-4 h-4" />} onClick={() => jobStore.delete(selectedJob.id)} aria-label="Eliminar">
+                            <Button variant="danger" size="sm" leftIcon={<Trash2 className="w-4 h-4" />} onClick={() => jobStore.delete(selectedJob.id)}>
                                 Eliminar
                             </Button>
                         </div>

@@ -5,6 +5,7 @@ import { projectAccessoryRepository } from '../api/projectAccessoryRepository';
 interface ProjectAccessoryState {
   projectAccessories: ProjectAccessory[];
   isLoading: boolean;
+  error: string | null;
 }
 
 interface ProjectAccessoryActions {
@@ -23,11 +24,16 @@ export const useProjectAccessoryStore = create<
 >()((set, get) => ({
   projectAccessories: [],
   isLoading: false,
+  error: null,
 
   fetchAll: async () => {
-    set({ isLoading: true });
-    const projectAccessories = await projectAccessoryRepository.getAll();
-    set({ projectAccessories, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const projectAccessories = await projectAccessoryRepository.getAll();
+      set({ projectAccessories, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   getById: (id) =>
@@ -37,33 +43,55 @@ export const useProjectAccessoryStore = create<
     get().projectAccessories.filter((a) => a.projectId === projectId),
 
   create: async (item) => {
-    const created = await projectAccessoryRepository.create(item);
-    set((state) => ({
-      projectAccessories: [...state.projectAccessories, created],
-    }));
-    return created;
+    set({ error: null });
+    try {
+      const created = await projectAccessoryRepository.create(item);
+      set((state) => ({
+        projectAccessories: [...state.projectAccessories, created],
+      }));
+      return created;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   update: async (id, updates) => {
-    await projectAccessoryRepository.update(id, updates);
-    set((state) => ({
-      projectAccessories: state.projectAccessories.map((a) =>
-        a.id === id ? { ...a, ...updates } : a
-      ),
-    }));
+    set({ error: null });
+    try {
+      await projectAccessoryRepository.update(id, updates);
+      set((state) => ({
+        projectAccessories: state.projectAccessories.map((a) =>
+          a.id === id ? { ...a, ...updates } : a
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   delete: async (id) => {
-    await projectAccessoryRepository.delete(id);
-    set((state) => ({
-      projectAccessories: state.projectAccessories.filter((a) => a.id !== id),
-    }));
+    set({ error: null });
+    try {
+      await projectAccessoryRepository.delete(id);
+      set((state) => ({
+        projectAccessories: state.projectAccessories.filter((a) => a.id !== id),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   hydrate: async () => {
-    set({ isLoading: true });
-    const projectAccessories = await projectAccessoryRepository.getAll();
-    set({ projectAccessories, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const projectAccessories = await projectAccessoryRepository.getAll();
+      set({ projectAccessories, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   refetch: async () => {

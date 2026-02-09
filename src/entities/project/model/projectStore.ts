@@ -5,6 +5,7 @@ import { projectRepository } from '../api/projectRepository';
 interface ProjectState {
   projects: Project[];
   isLoading: boolean;
+  error: string | null;
 }
 
 interface ProjectActions {
@@ -20,37 +21,64 @@ interface ProjectActions {
 export const useProjectStore = create<ProjectState & ProjectActions>()((set, get) => ({
   projects: [],
   isLoading: false,
+  error: null,
 
   fetchAll: async () => {
-    set({ isLoading: true });
-    const projects = await projectRepository.getAll();
-    set({ projects, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const projects = await projectRepository.getAll();
+      set({ projects, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   getById: (id) => get().projects.find((p) => p.id === id),
 
   create: async (project) => {
-    const created = await projectRepository.create(project);
-    set((state) => ({ projects: [...state.projects, created] }));
-    return created;
+    set({ error: null });
+    try {
+      const created = await projectRepository.create(project);
+      set((state) => ({ projects: [...state.projects, created] }));
+      return created;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   update: async (id, updates) => {
-    await projectRepository.update(id, updates);
-    set((state) => ({
-      projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-    }));
+    set({ error: null });
+    try {
+      await projectRepository.update(id, updates);
+      set((state) => ({
+        projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   delete: async (id) => {
-    await projectRepository.delete(id);
-    set((state) => ({ projects: state.projects.filter((p) => p.id !== id) }));
+    set({ error: null });
+    try {
+      await projectRepository.delete(id);
+      set((state) => ({ projects: state.projects.filter((p) => p.id !== id) }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   hydrate: async () => {
-    set({ isLoading: true });
-    const projects = await projectRepository.getAll();
-    set({ projects, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const projects = await projectRepository.getAll();
+      set({ projects, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   refetch: async () => {

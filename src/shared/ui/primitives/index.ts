@@ -8,3 +8,5 @@ export { Slider } from './Slider';
 export type { SliderProps } from './Slider';
 export { Tabs } from './Tabs';
 export type { TabsProps, TabItem } from './Tabs';
+export { Textarea } from './Textarea';
+export type { TextareaProps } from './Textarea';

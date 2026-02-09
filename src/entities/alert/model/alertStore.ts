@@ -6,6 +6,7 @@ import { generateAlertId } from '@/shared/utils/id';
 interface AlertState {
   alerts: SystemAlert[];
   isLoading: boolean;
+  error: string | null;
 }
 
 interface AlertActions {
@@ -22,48 +23,81 @@ interface AlertActions {
 export const useAlertStore = create<AlertState & AlertActions>()((set, get) => ({
   alerts: [],
   isLoading: false,
+  error: null,
 
   fetchAll: async () => {
-    set({ isLoading: true });
-    const alerts = await alertRepository.getAll();
-    set({ alerts, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const alerts = await alertRepository.getAll();
+      set({ alerts, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   getById: (id) => get().alerts.find((a) => a.id === id),
 
   add: async (alert) => {
-    const newAlert: SystemAlert = {
-      ...alert,
-      id: generateAlertId(),
-      timestamp: new Date().toISOString(),
-    };
-    await alertRepository.create(newAlert);
-    set((state) => ({ alerts: [newAlert, ...state.alerts] }));
-    return newAlert;
+    set({ error: null });
+    try {
+      const newAlert: SystemAlert = {
+        ...alert,
+        id: generateAlertId(),
+        timestamp: new Date().toISOString(),
+      };
+      await alertRepository.create(newAlert);
+      set((state) => ({ alerts: [newAlert, ...state.alerts] }));
+      return newAlert;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   create: async (alert) => {
-    const created = await alertRepository.create(alert);
-    set((state) => ({ alerts: [created, ...state.alerts] }));
-    return created;
+    set({ error: null });
+    try {
+      const created = await alertRepository.create(alert);
+      set((state) => ({ alerts: [created, ...state.alerts] }));
+      return created;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   update: async (id, updates) => {
-    await alertRepository.update(id, updates);
-    set((state) => ({
-      alerts: state.alerts.map((a) => (a.id === id ? { ...a, ...updates } : a)),
-    }));
+    set({ error: null });
+    try {
+      await alertRepository.update(id, updates);
+      set((state) => ({
+        alerts: state.alerts.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   delete: async (id) => {
-    await alertRepository.delete(id);
-    set((state) => ({ alerts: state.alerts.filter((a) => a.id !== id) }));
+    set({ error: null });
+    try {
+      await alertRepository.delete(id);
+      set((state) => ({ alerts: state.alerts.filter((a) => a.id !== id) }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   hydrate: async () => {
-    set({ isLoading: true });
-    const alerts = await alertRepository.getAll();
-    set({ alerts, isLoading: false });
+    set({ isLoading: true, error: null });
+    try {
+      const alerts = await alertRepository.getAll();
+      set({ alerts, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
   refetch: async () => {

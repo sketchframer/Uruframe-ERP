@@ -2,42 +2,57 @@ import { useState } from 'react';
 import type { Client } from '@/shared/types';
 import { useClientStore } from '@/entities/client';
 import { useProjectStore } from '@/entities/project';
-import { EmptyState, TwoColumnLayout, SelectableList, Button, Input } from '@/shared/ui';
+import { useForm } from '@/shared/hooks';
+import { EmptyState, TwoColumnLayout, SelectableList, Button, Input, toast, FullPageSpinner } from '@/shared/ui';
 import { Users, Mail, Phone, Plus, Save, Trash2, Building } from 'lucide-react';
+
+const EMPTY_CLIENT = { name: '', contactPerson: '', email: '', phone: '', taxId: '', address: '' };
 
 export function ClientsPage() {
   const clients = useClientStore((s) => s.clients);
+  const isLoading = useClientStore((s) => s.isLoading);
   const projects = useProjectStore((s) => s.projects);
   const clientStore = useClientStore.getState();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [formData, setFormData] = useState<Partial<Client>>({});
+
+  const form = useForm({
+    initialValues: EMPTY_CLIENT,
+    onSubmit: async (values) => {
+      if (!values.name) return;
+      if (selectedClient) {
+        await clientStore.update(selectedClient.id, values);
+      } else {
+        await clientStore.create(values as Omit<Client, 'id'>);
+      }
+      toast.success(selectedClient ? 'Cliente actualizado' : 'Cliente creado');
+      setIsEditing(false);
+      setSelectedClient(null);
+    },
+  });
 
   const handleNew = () => {
     setSelectedClient(null);
-    setFormData({ name: '', contactPerson: '', email: '', phone: '', taxId: '' });
+    form.reset();
     setIsEditing(true);
   };
 
   const handleSelect = (c: Client) => {
     setSelectedClient(c);
-    setFormData(c);
+    form.setValues({
+      name: c.name,
+      contactPerson: c.contactPerson ?? '',
+      email: c.email ?? '',
+      phone: c.phone ?? '',
+      taxId: c.taxId ?? '',
+      address: c.address ?? '',
+    });
     setIsEditing(false);
   };
 
-  const handleSave = async () => {
-    if (!formData.name) return;
-    if (selectedClient) {
-      await clientStore.update(selectedClient.id, formData);
-    } else {
-      await clientStore.create(formData as Omit<Client, 'id'>);
-    }
-    setIsEditing(false);
-    setSelectedClient(null);
-  };
-
-  // Get active projects for selected client
   const clientProjects = selectedClient ? projects.filter(p => p.clientId === selectedClient.id) : [];
+
+  if (isLoading) return <FullPageSpinner />;
 
   return (
     <TwoColumnLayout
@@ -75,7 +90,7 @@ export function ClientsPage() {
               </h2>
               <div className="flex gap-2">
                 {isEditing ? (
-                  <Button variant="primary" size="sm" leftIcon={<Save className="w-4 h-4" />} onClick={handleSave}>
+                  <Button variant="primary" size="sm" leftIcon={<Save className="w-4 h-4" />} onClick={form.handleSubmit} isLoading={form.isSubmitting}>
                     Guardar
                   </Button>
                 ) : (
@@ -93,35 +108,36 @@ export function ClientsPage() {
               <div className="grid grid-cols-2 gap-6">
                 <Input
                   label="Razón Social / Nombre"
-                  value={formData.name || ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={form.values.name}
+                  onChange={(e) => form.handleChange('name', e.target.value)}
+                  error={form.errors.name}
                 />
                 <Input
                   label="ID Tributario (CUIT/RUT)"
-                  value={formData.taxId || ''}
-                  onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                  value={form.values.taxId}
+                  onChange={(e) => form.handleChange('taxId', e.target.value)}
                 />
                 <Input
                   label="Persona de Contacto"
-                  value={formData.contactPerson || ''}
-                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                  value={form.values.contactPerson}
+                  onChange={(e) => form.handleChange('contactPerson', e.target.value)}
                 />
                 <Input
                   label="Email"
                   type="email"
-                  value={formData.email || ''}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  value={form.values.email}
+                  onChange={(e) => form.handleChange('email', e.target.value)}
                 />
                 <Input
                   label="Teléfono"
-                  value={formData.phone || ''}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={form.values.phone}
+                  onChange={(e) => form.handleChange('phone', e.target.value)}
                 />
                 <div className="col-span-2">
                   <Input
                     label="Dirección Física"
-                    value={formData.address || ''}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    value={form.values.address}
+                    onChange={(e) => form.handleChange('address', e.target.value)}
                   />
                 </div>
               </div>

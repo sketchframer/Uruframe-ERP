@@ -30,3 +30,17 @@ JSON_COLUMNS: dict[str, list[str]] = {
 
 # Valid resource names for generic CRUD
 RESOURCE_NAMES: set[str] = set(RESOURCE_TO_TABLE)
+
+# Per-resource allowlist for order_by (snake_case column names)
+ORDERABLE_COLUMNS: dict[str, set[str]] = {
+    "users": {"id", "name", "role"},
+    "machines": {"id", "name", "type", "status", "efficiency", "last_maintenance", "is_active"},
+    "jobs": {"id", "status", "priority_index", "start_date", "end_date", "product_name", "target_quantity"},
+    "projects": {"id", "name", "deadline", "status", "budget"},
+    "clients": {"id", "name", "email"},
+    "inventory": {"id", "name", "sku", "quantity", "location"},
+    "alerts": {"id", "timestamp", "severity", "type"},
+    "events": {"id", "timestamp", "type", "severity"},
+    "messages": {"id", "timestamp", "is_read"},
+    "project-accessories": {"id", "project_id", "quantity_required", "is_fulfilled"},
+}

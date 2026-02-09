@@ -1,4 +1,8 @@
-"""Centralized JSON column encode/decode for DB rows; snake_case <-> camelCase."""
+"""Centralized JSON column encode/decode for DB rows; snake_case <-> camelCase.
+
+Date/datetime columns stay as ISO strings in SQLite — no conversion needed here.
+Validation of date formats happens at the Pydantic schema level.
+"""
 
 import json
 from typing import Any
@@ -16,7 +20,7 @@ def snake_to_camel(name: str) -> str:
 
 
 def camel_to_snake(name: str) -> str:
-    result = []
+    result: list[str] = []
     for i, c in enumerate(name):
         if c.isupper() and i > 0:
             result.append("_")
@@ -35,7 +39,10 @@ def body_to_snake(body: dict[str, Any]) -> dict[str, Any]:
 
 
 def encode_row_for_db(row_dict: dict[str, Any], resource: str) -> dict[str, Any]:
-    """Encode JSON columns for writing to DB (Python -> JSON string)."""
+    """Encode JSON columns for writing to DB (Python list/dict -> JSON string).
+
+    Date/datetime columns are stored as ISO strings — no conversion needed.
+    """
     table = _table_for_resource(resource)
     cols = JSON_COLUMNS.get(table, [])
     out = dict(row_dict)
@@ -46,7 +53,10 @@ def encode_row_for_db(row_dict: dict[str, Any], resource: str) -> dict[str, Any]
 
 
 def decode_row_from_db(row_dict: dict[str, Any], resource: str) -> dict[str, Any]:
-    """Decode JSON columns when reading from DB (JSON string -> Python)."""
+    """Decode JSON columns when reading from DB (JSON string -> Python list/dict).
+
+    Date/datetime columns are already ISO strings — passed through as-is.
+    """
     table = _table_for_resource(resource)
     cols = JSON_COLUMNS.get(table, [])
     out = dict(row_dict)

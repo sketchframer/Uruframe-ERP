@@ -9,6 +9,7 @@ interface UserState {
   users: User[];
   currentUser: User | null;
   isLoading: boolean;
+  error: string | null;
 }
 
 interface UserActions {
@@ -29,10 +30,16 @@ export const useUserStore = create<UserState & UserActions>()(
       users: [],
       currentUser: null,
       isLoading: false,
+      error: null,
 
       fetchAll: async () => {
-        const users = await userRepository.getAll();
-        set({ users });
+        set({ error: null });
+        try {
+          const users = await userRepository.getAll();
+          set({ users });
+        } catch (error) {
+          set({ error: (error as Error).message });
+        }
       },
 
       login: async (pin) => {
@@ -50,33 +57,55 @@ export const useUserStore = create<UserState & UserActions>()(
       setCurrentUser: (user) => set({ currentUser: user }),
 
       create: async (user) => {
-        const created = await userRepository.create(user);
-        set((state) => ({ users: [...state.users, created] }));
-        return created;
+        set({ error: null });
+        try {
+          const created = await userRepository.create(user);
+          set((state) => ({ users: [...state.users, created] }));
+          return created;
+        } catch (error) {
+          set({ error: (error as Error).message });
+          throw error;
+        }
       },
 
       update: async (id, updates) => {
-        await userRepository.update(id, updates);
-        set((state) => ({
-          users: state.users.map((u) => (u.id === id ? { ...u, ...updates } : u)),
-        }));
+        set({ error: null });
+        try {
+          await userRepository.update(id, updates);
+          set((state) => ({
+            users: state.users.map((u) => (u.id === id ? { ...u, ...updates } : u)),
+          }));
+        } catch (error) {
+          set({ error: (error as Error).message });
+          throw error;
+        }
       },
 
       delete: async (id) => {
-        await userRepository.delete(id);
-        set((state) => ({ users: state.users.filter((u) => u.id !== id) }));
+        set({ error: null });
+        try {
+          await userRepository.delete(id);
+          set((state) => ({ users: state.users.filter((u) => u.id !== id) }));
+        } catch (error) {
+          set({ error: (error as Error).message });
+          throw error;
+        }
       },
 
       hydrate: async () => {
-        set({ isLoading: true });
-        let users = await userRepository.getAll();
-        if (!USE_API && users.length === 0) {
-          for (const user of INITIAL_USERS) {
-            await userRepository.create(user);
+        set({ isLoading: true, error: null });
+        try {
+          let users = await userRepository.getAll();
+          if (!USE_API && users.length === 0) {
+            for (const user of INITIAL_USERS) {
+              await userRepository.create(user);
+            }
+            users = INITIAL_USERS;
           }
-          users = INITIAL_USERS;
+          set({ users, isLoading: false });
+        } catch (error) {
+          set({ error: (error as Error).message, isLoading: false });
         }
-        set({ users, isLoading: false });
       },
 
       refetch: async () => {
