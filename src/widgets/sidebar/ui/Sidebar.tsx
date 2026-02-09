@@ -8,7 +8,7 @@ import {
   Factory,
   ListTodo,
   Users,
-  UserCog,
+  UserCircle,
   LogOut,
 } from 'lucide-react';
 import { useRouterState } from '@tanstack/react-router';
@@ -44,13 +44,19 @@ export function Sidebar() {
           to="/"
           exact
         />
+        <NavItem
+          icon={<ClipboardList size={20} />}
+          label="Proyectos"
+          to="/projects"
+        />
+          <NavItem icon={<ListTodo size={20} />} label="Producción" to="/orders" />
         <button
           type="button"
           onClick={() => toOperator()}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
             pathname.startsWith('/operator')
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
           }`}
         >
           <MonitorPlay size={20} />
@@ -58,15 +64,10 @@ export function Sidebar() {
             Terminal
           </span>
         </button>
-        <NavItem
-          icon={<ClipboardList size={20} />}
-          label="Proyectos"
-          to="/projects"
-        />
-        <NavItem icon={<ListTodo size={20} />} label="Producción" to="/orders" />
+        
         <NavItem icon={<Package size={20} />} label="Stock" to="/inventory" />
         <NavItem icon={<Users size={20} />} label="Clientes" to="/clients" />
-        <NavItem icon={<UserCog size={20} />} label="Usuarios" to="/users" />
+        <NavItem icon={<UserCircle size={20} />} label="Usuarios" to="/users" />
       </nav>
 
       <div className="p-4 border-t border-slate-800 space-y-2">

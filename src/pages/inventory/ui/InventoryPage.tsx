@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import type { InventoryItem } from '@/shared/types';
 import { useInventoryStore } from '@/entities/inventory';
-import { Download, Upload, Plus, Search, AlertCircle, X, Save, Trash2 } from 'lucide-react';
+import { Modal, ModalFooter } from '@/shared/ui';
+import { Button } from '@/shared/ui';
+import { Download, Upload, Plus, Search, AlertCircle, Save, Trash2 } from 'lucide-react';
 
 export function InventoryPage() {
   const inventory = useInventoryStore((s) => s.inventory);
@@ -135,121 +137,113 @@ export function InventoryPage() {
     <div className="space-y-6 animate-fade-in h-full flex flex-col relative">
       
       {/* Modal Agregar Item */}
-      {isAddingItem && (
-        <div className="absolute inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-lg shadow-2xl">
-            <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
-              <h3 className="text-xl font-bold text-white">Nuevo Material / Insumo</h3>
-              <button onClick={() => setIsAddingItem(false)} className="text-slate-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div className="col-span-2">
-                 <label className="text-xs text-slate-500 uppercase">Nombre</label>
-                 <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} placeholder="Ej: Tornillos Autoperforantes" />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">SKU / Código</label>
-                 <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={newItem.sku} onChange={e => setNewItem({...newItem, sku: e.target.value})} placeholder="Ej: TOR-001" />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Ubicación</label>
-                 <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={newItem.location} onChange={e => setNewItem({...newItem, location: e.target.value})} placeholder="Ej: Estante A2" />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Cantidad Inicial</label>
-                 <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={newItem.quantity} onChange={e => setNewItem({...newItem, quantity: Number(e.target.value)})} />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Unidad</label>
-                 <select className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value as InventoryItem['unit']})}>
-                   <option value="units">Unidades</option>
-                   <option value="kg">Kilos (kg)</option>
-                   <option value="m">Metros (m)</option>
-                   <option value="L">Litros (L)</option>
-                 </select>
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Stock Mínimo</label>
-                 <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={newItem.minThreshold} onChange={e => setNewItem({...newItem, minThreshold: Number(e.target.value)})} />
-               </div>
-            </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setIsAddingItem(false)} className="px-4 py-2 text-slate-400 hover:text-white">Cancelar</button>
-              <button onClick={handleAddNewItem} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold">Guardar Item</button>
-            </div>
+      <Modal
+        isOpen={isAddingItem}
+        onClose={() => setIsAddingItem(false)}
+        title="Nuevo Material / Insumo"
+        size="lg"
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="text-xs text-slate-500 uppercase">Nombre</label>
+            <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} placeholder="Ej: Tornillos Autoperforantes" />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">SKU / Código</label>
+            <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={newItem.sku} onChange={e => setNewItem({...newItem, sku: e.target.value})} placeholder="Ej: TOR-001" />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Ubicación</label>
+            <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={newItem.location} onChange={e => setNewItem({...newItem, location: e.target.value})} placeholder="Ej: Estante A2" />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Cantidad Inicial</label>
+            <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={newItem.quantity} onChange={e => setNewItem({...newItem, quantity: Number(e.target.value)})} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Unidad</label>
+            <select className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value as InventoryItem['unit']})}>
+              <option value="units">Unidades</option>
+              <option value="kg">Kilos (kg)</option>
+              <option value="m">Metros (m)</option>
+              <option value="L">Litros (L)</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Stock Mínimo</label>
+            <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={newItem.minThreshold} onChange={e => setNewItem({...newItem, minThreshold: Number(e.target.value)})} />
           </div>
         </div>
-      )}
+        <ModalFooter>
+          <Button variant="ghost" size="sm" onClick={() => setIsAddingItem(false)}>Cancelar</Button>
+          <Button variant="primary" size="sm" onClick={handleAddNewItem}>Guardar Item</Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Modal Editar Item */}
-      {editingItem && (
-        <div className="absolute inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-lg shadow-2xl">
-            <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
-              <h3 className="text-xl font-bold text-white">Editar Material / Insumo</h3>
-              <button onClick={handleCloseEditModal} className="text-slate-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div className="col-span-2">
-                 <label className="text-xs text-slate-500 uppercase">Nombre</label>
-                 <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={editItem.name || ''} onChange={e => setEditItem({...editItem, name: e.target.value})} />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">SKU / Código</label>
-                 <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={editItem.sku || ''} onChange={e => setEditItem({...editItem, sku: e.target.value})} />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Ubicación</label>
-                 <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={editItem.location || ''} onChange={e => setEditItem({...editItem, location: e.target.value})} />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Cantidad</label>
-                 <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={editItem.quantity ?? 0} onChange={e => setEditItem({...editItem, quantity: Number(e.target.value)})} />
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Unidad</label>
-                 <select className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={editItem.unit || 'units'} onChange={e => setEditItem({...editItem, unit: e.target.value as InventoryItem['unit']})}>
-                   <option value="units">Unidades</option>
-                   <option value="kg">Kilos (kg)</option>
-                   <option value="m">Metros (m)</option>
-                   <option value="L">Litros (L)</option>
-                 </select>
-               </div>
-               <div>
-                 <label className="text-xs text-slate-500 uppercase">Stock Mínimo</label>
-                 <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
-                   value={editItem.minThreshold ?? 0} onChange={e => setEditItem({...editItem, minThreshold: Number(e.target.value)})} />
-               </div>
-            </div>
-            <div className="mt-6 flex justify-between gap-3">
-              <button onClick={handleDeleteItem} className="px-4 py-2 bg-red-900/50 hover:bg-red-900 text-red-200 rounded font-bold flex items-center gap-2">
-                <Trash2 className="w-4 h-4" /> Eliminar
-              </button>
-              <div className="flex gap-3">
-                <button onClick={handleCloseEditModal} className="px-4 py-2 text-slate-400 hover:text-white">Cancelar</button>
-                <button onClick={handleSaveEditItem} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold flex items-center gap-2">
-                  <Save className="w-4 h-4" /> Guardar cambios
-                </button>
-              </div>
-            </div>
+      <Modal
+        isOpen={!!editingItem}
+        onClose={handleCloseEditModal}
+        title="Editar Material / Insumo"
+        size="lg"
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="text-xs text-slate-500 uppercase">Nombre</label>
+            <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={editItem.name || ''} onChange={e => setEditItem({...editItem, name: e.target.value})} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">SKU / Código</label>
+            <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={editItem.sku || ''} onChange={e => setEditItem({...editItem, sku: e.target.value})} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Ubicación</label>
+            <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={editItem.location || ''} onChange={e => setEditItem({...editItem, location: e.target.value})} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Cantidad</label>
+            <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={editItem.quantity ?? 0} onChange={e => setEditItem({...editItem, quantity: Number(e.target.value)})} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Unidad</label>
+            <select className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={editItem.unit || 'units'} onChange={e => setEditItem({...editItem, unit: e.target.value as InventoryItem['unit']})}>
+              <option value="units">Unidades</option>
+              <option value="kg">Kilos (kg)</option>
+              <option value="m">Metros (m)</option>
+              <option value="L">Litros (L)</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Stock Mínimo</label>
+            <input type="number" className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white"
+              value={editItem.minThreshold ?? 0} onChange={e => setEditItem({...editItem, minThreshold: Number(e.target.value)})} />
           </div>
         </div>
-      )}
+        <ModalFooter>
+          <div className="flex justify-between w-full gap-3">
+            <Button variant="danger" size="sm" leftIcon={<Trash2 className="w-4 h-4" />} onClick={handleDeleteItem}>
+              Eliminar
+            </Button>
+            <div className="flex gap-3">
+              <Button variant="ghost" size="sm" onClick={handleCloseEditModal}>Cancelar</Button>
+              <Button variant="primary" size="sm" leftIcon={<Save className="w-4 h-4" />} onClick={handleSaveEditItem}>
+                Guardar cambios
+              </Button>
+            </div>
+          </div>
+        </ModalFooter>
+      </Modal>
 
       {/* Header de Acciones */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700">

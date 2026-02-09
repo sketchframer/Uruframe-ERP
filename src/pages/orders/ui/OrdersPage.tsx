@@ -4,7 +4,8 @@ import { useJobStore } from '@/entities/job';
 import { useProjectStore } from '@/entities/project';
 import { useMachineStore } from '@/entities/machine';
 import { useUserStore } from '@/entities/user';
-import { Plus, Trash2, ListTodo } from 'lucide-react';
+import { EmptyState, SelectableList, Button, Input } from '@/shared/ui';
+import { Plus, Trash2, ListTodo, Search, X, Pencil } from 'lucide-react';
 
 export function OrdersPage() {
   const jobs = useJobStore((s) => s.jobs);
@@ -14,6 +15,8 @@ export function OrdersPage() {
   const jobStore = useJobStore.getState();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [editFormData, setEditFormData] = useState<Partial<Job>>({});
   const [searchTerm, setSearchTerm] = useState('');
 
   const [newJob, setNewJob] = useState<Partial<Job>>({
@@ -52,29 +55,92 @@ export function OrdersPage() {
       setNewJob({...newJob, operatorIds: updated});
   };
 
+  const toggleEditOperator = (opId: string) => {
+    const current = editFormData.operatorIds ?? [];
+    const updated = current.includes(opId) ? current.filter((id) => id !== opId) : [...current, opId];
+    setEditFormData({ ...editFormData, operatorIds: updated });
+  };
+
+  const startEditingOrder = () => {
+    if (!selectedJob) return;
+    setEditFormData({
+      projectId: selectedJob.projectId,
+      assignedMachineId: selectedJob.assignedMachineId,
+      operatorIds: selectedJob.operatorIds ?? [],
+      productName: selectedJob.productName,
+      targetQuantity: selectedJob.targetQuantity,
+      unit: selectedJob.unit,
+    });
+    setIsEditingOrder(true);
+  };
+
+  const cancelEditOrder = () => {
+    setIsEditingOrder(false);
+    setEditFormData({});
+  };
+
+  const saveEditOrder = async () => {
+    if (!selectedJob || !editFormData.projectId || !editFormData.assignedMachineId || !editFormData.productName || editFormData.targetQuantity == null) return;
+    const selectedMachine = machines.find((m) => m.id === editFormData.assignedMachineId);
+    const updates: Partial<Job> = {
+      projectId: editFormData.projectId,
+      assignedMachineId: editFormData.assignedMachineId,
+      machineType: selectedMachine?.type ?? selectedJob.machineType,
+      operatorIds: editFormData.operatorIds ?? [],
+      productName: editFormData.productName,
+      targetQuantity: Number(editFormData.targetQuantity),
+      unit: editFormData.unit ?? 'units',
+    };
+    await jobStore.update(selectedJob.id, updates);
+    const updated = jobStore.getById(selectedJob.id);
+    if (updated) setSelectedJob(updated);
+    setIsEditingOrder(false);
+    setEditFormData({});
+  };
+
+  const filteredJobs = jobs.filter((j) =>
+    j.productName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="flex h-full gap-6 animate-fade-in overflow-hidden p-2">
-       {/* PANEL IZQUIERDO */}
-       <div className={`${selectedJob || isCreating ? 'hidden md:flex md:w-1/3 lg:w-1/4' : 'w-full'} flex-col bg-slate-800 rounded-xl border border-slate-700 h-full`}>
-           <div className="p-4 border-b border-slate-700 space-y-4">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-white uppercase tracking-tighter">Órdenes</h2>
-                    <button onClick={() => { setSelectedJob(null); setIsCreating(true); resetForm(); }} className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg"><Plus className="w-5 h-5" /></button>
-                </div>
-                <input type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm outline-none" />
-           </div>
-           <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                {jobs.filter(j => j.productName.toLowerCase().includes(searchTerm.toLowerCase())).map(job => (
-                    <button key={job.id} onClick={() => { setIsCreating(false); setSelectedJob(job); }} className={`w-full text-left p-3 rounded-xl border transition-all ${selectedJob?.id === job.id ? 'bg-blue-900/30 border-blue-500' : 'bg-slate-700/20 border-transparent hover:bg-slate-700/50'}`}>
-                        <div className="font-bold text-white text-sm">{job.productName}</div>
-                        <div className="text-[10px] text-slate-400 mt-1 uppercase font-black">{job.status} • {job.machineType}</div>
-                    </button>
-                ))}
-           </div>
+       <div className={`${selectedJob || isCreating ? 'hidden md:flex md:w-1/3 lg:w-1/4' : 'w-full'} flex-col bg-slate-800 rounded-xl border border-slate-700 h-full min-w-0 overflow-hidden`}>
+         <SelectableList<Job>
+           items={filteredJobs}
+           selectedId={selectedJob?.id ?? null}
+           onSelect={(id) => {
+             const job = jobs.find((j) => j.id === id);
+             if (job) {
+               setIsCreating(false);
+               setIsEditingOrder(false);
+               setSelectedJob(job);
+             }
+           }}
+           getItemId={(j) => j.id}
+           title={
+             <>
+              
+               <Input
+                 placeholder="Buscar..."
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+                 leftIcon={<Search className="w-4 h-4" />}
+                 className="mt-4"
+               />
+               
+             </>
+           }
+           renderItem={(job) => (
+             <>
+               <div className="font-bold text-white text-sm">{job.productName}</div>
+               <div className="text-[10px] text-slate-400 mt-1 uppercase font-black">{job.status} • {job.machineType}</div>
+             </>
+           )}
+           itemClassName="rounded-xl"
+         />
        </div>
 
-       {/* PANEL DERECHO */}
-       <div className="flex-1 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden flex flex-col h-full relative">
+       <div className="flex-1 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden flex flex-col h-full relative min-w-0">
             {isCreating ? (
                 <div className="flex flex-col h-full p-8 overflow-y-auto">
                     <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-8">Nueva Carga de Trabajo</h2>
@@ -118,7 +184,66 @@ export function OrdersPage() {
                             </div>
                         </div>
 
-                        <button onClick={handleCreateJob} className="w-full bg-blue-600 py-4 rounded-xl text-white font-black uppercase shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all">Crear Orden y Vincular</button>
+                        <div className="flex gap-3">
+                            <Button variant="ghost" size="lg" className="flex-1" onClick={() => { setIsCreating(false); setSelectedJob(null); resetForm(); }}>
+                                Cancelar
+                            </Button>
+                            <Button variant="primary" size="lg" className="flex-1" onClick={handleCreateJob}>
+                                Crear Orden y Vincular
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            ) : selectedJob && isEditingOrder ? (
+                <div className="flex flex-col h-full p-8 overflow-y-auto">
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-8">Editar Carga de Trabajo</h2>
+                    <div className="space-y-6 max-w-2xl">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Proyecto</label>
+                                <select className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" value={editFormData.projectId ?? ''} onChange={(e) => setEditFormData({ ...editFormData, projectId: e.target.value })}>
+                                    <option value="">Seleccione Proyecto...</option>
+                                    {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Unidad de Planta</label>
+                                <select className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white" value={editFormData.assignedMachineId ?? ''} onChange={(e) => setEditFormData({ ...editFormData, assignedMachineId: e.target.value })}>
+                                    <option value="">Seleccione Estación...</option>
+                                    {machines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-500 font-black uppercase mb-2 block">Operarios Específicos (Opcional)</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {users.filter((u) => u.role === 'OPERATOR').map((u) => (
+                                        <button
+                                            key={u.id}
+                                            type="button"
+                                            onClick={() => toggleEditOperator(u.id)}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${editFormData.operatorIds?.includes(u.id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-500'}`}
+                                        >
+                                            {u.name.split(' ')[0]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <Input placeholder="Nombre de la Orden" value={editFormData.productName ?? ''} onChange={(e) => setEditFormData({ ...editFormData, productName: e.target.value })} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input type="number" placeholder="Cantidad" value={editFormData.targetQuantity ?? ''} onChange={(e) => setEditFormData({ ...editFormData, targetQuantity: Number(e.target.value) })} />
+                                <Input placeholder="Unidad (m, kg, u)" value={editFormData.unit ?? ''} onChange={(e) => setEditFormData({ ...editFormData, unit: e.target.value })} />
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button variant="ghost" size="lg" className="flex-1" onClick={cancelEditOrder}>
+                                Cancelar
+                            </Button>
+                            <Button variant="primary" size="lg" className="flex-1" onClick={saveEditOrder}>
+                                Guardar
+                            </Button>
+                        </div>
                     </div>
                 </div>
             ) : selectedJob ? (
@@ -131,7 +256,17 @@ export function OrdersPage() {
                                 <span className="text-slate-500 text-xs font-bold">{projects.find(p => p.id === selectedJob.projectId)?.name}</span>
                             </div>
                         </div>
-                        <button onClick={() => jobStore.delete(selectedJob.id)} className="bg-red-900/20 text-red-500 p-3 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2/></button>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" leftIcon={<X className="w-4 h-4" />} onClick={() => setSelectedJob(null)} aria-label="Cerrar">
+                                Cerrar
+                            </Button>
+                            <Button variant="secondary" size="sm" leftIcon={<Pencil className="w-4 h-4" />} onClick={startEditingOrder} aria-label="Editar">
+                                Editar
+                            </Button>
+                            <Button variant="danger" size="sm" leftIcon={<Trash2 className="w-4 h-4" />} onClick={() => jobStore.delete(selectedJob.id)} aria-label="Eliminar">
+                                Eliminar
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-10">
@@ -163,10 +298,11 @@ export function OrdersPage() {
                     </div>
                 </div>
             ) : (
-                <div className="h-full flex flex-col items-center justify-center opacity-20">
-                    <ListTodo size={100} className="mb-4" />
-                    <p className="font-black uppercase tracking-widest">Seleccione Carga</p>
-                </div>
+                <EmptyState
+                  icon={<ListTodo />}
+                  message="Seleccione Carga"
+                  className="h-full"
+                />
             )}
        </div>
     </div>

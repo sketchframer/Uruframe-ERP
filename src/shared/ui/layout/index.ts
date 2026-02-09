@@ -1,5 +1,15 @@
 export { Card, CardHeader, CardTitle, CardDescription } from './Card';
 export type { CardProps } from './Card';
+export { PageHeader } from './PageHeader';
+export type { PageHeaderProps } from './PageHeader';
+export { SelectableList } from './SelectableList';
+export type { SelectableListProps } from './SelectableList';
+export { SelectableListItem } from './SelectableListItem';
+export type { SelectableListItemProps } from './SelectableListItem';
 export { Stack, HStack, VStack } from './Stack';
+export { StatCard } from './StatCard';
+export type { StatCardProps } from './StatCard';
+export { TwoColumnLayout } from './TwoColumnLayout';
+export type { TwoColumnLayoutProps } from './TwoColumnLayout';
 export type { StackProps } from './Stack';
 export { SkipLink } from './SkipLink';

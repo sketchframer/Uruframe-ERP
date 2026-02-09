@@ -1,5 +1,7 @@
 export { Badge } from './Badge';
 export type { BadgeProps } from './Badge';
+export { EmptyState } from './EmptyState';
+export type { EmptyStateProps } from './EmptyState';
 export { StatusBadge } from './StatusBadge';
 export type { StatusBadgeProps } from './StatusBadge';
 export { Spinner, FullPageSpinner } from './Spinner';

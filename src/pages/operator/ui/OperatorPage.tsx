@@ -10,6 +10,7 @@ import { useAlertStore } from '@/entities/alert';
 import { useEventStore } from '@/entities/event';
 import { useJobActions } from '@/features/job-management';
 import { useAppNavigate } from '@/shared/hooks';
+import { EmptyState, Tabs } from '@/shared/ui';
 import {
   Play, Square, AlertTriangle, Box, User as UserIcon, LogOut, CheckCircle, Clock, Settings, MessageSquare, AlertCircle, X, Package, ArrowRight, Monitor
 } from 'lucide-react';
@@ -46,18 +47,27 @@ export function OperatorPage({ initialMachineId }: OperatorPageProps) {
   const [viewTab, setViewTab] = useState<'CONTROLS' | 'MESSAGES'>('CONTROLS');
   const [showAlertDetails, setShowAlertDetails] = useState(false);
   const prevMachineIdRef = useRef<string>('');
+  const initialMachineIdAppliedRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!currentUser) return;
     const assigned = machines.filter(m => m.operatorIds.includes(currentUser.id));
+    const selectionValid = selectedMachineId && machines.some(m => m.id === selectedMachineId);
+    const urlChanged = initialMachineId !== undefined && initialMachineId !== initialMachineIdAppliedRef.current;
+    const shouldSync = !selectedMachineId || !selectionValid || urlChanged;
+
+    if (!shouldSync) return;
+
     if (assigned.length === 1) {
-        setSelectedMachineId(assigned[0].id);
-        prevMachineIdRef.current = assigned[0].id;
+      setSelectedMachineId(assigned[0].id);
+      prevMachineIdRef.current = assigned[0].id;
+      initialMachineIdAppliedRef.current = assigned[0].id;
     } else if (initialMachineId) {
-        setSelectedMachineId(initialMachineId);
-        prevMachineIdRef.current = initialMachineId;
+      setSelectedMachineId(initialMachineId);
+      prevMachineIdRef.current = initialMachineId;
+      initialMachineIdAppliedRef.current = initialMachineId;
     }
-  }, [currentUser, initialMachineId, machines]);
+  }, [currentUser, initialMachineId, machines, selectedMachineId]);
 
   if (!currentUser) return null;
 
@@ -130,18 +140,27 @@ export function OperatorPage({ initialMachineId }: OperatorPageProps) {
             </button>
           </div>
           
-          <nav className="flex gap-1.5 bg-slate-950 p-1.5 rounded-lg mb-2 sm:mb-3">
-            <button 
-                onClick={() => setViewTab('CONTROLS')} 
-                className={`flex-1 py-2 sm:py-2.5 text-[10px] font-black uppercase rounded-lg transition-all ${viewTab === 'CONTROLS' ? 'bg-slate-800 text-white ring-1 ring-slate-700' : 'text-slate-400 hover:text-slate-300'}`}
-            >Controles</button>
-            <button 
-                onClick={() => setViewTab('MESSAGES')} 
-                className={`flex-1 py-2 sm:py-2.5 text-[10px] font-black uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${viewTab === 'MESSAGES' ? 'bg-slate-800 text-white ring-1 ring-slate-700' : 'text-slate-400 hover:text-slate-300'}`}
-            >
-              Mensajes {userMessages.length > 0 && <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[9px] animate-pulse">{userMessages.length}</span>}
-            </button>
-          </nav>
+          <Tabs
+            tabs={[
+              { id: 'CONTROLS', label: 'Controles' },
+              {
+                id: 'MESSAGES',
+                label: (
+                  <>
+                    Mensajes
+                    {userMessages.length > 0 && (
+                      <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[9px] animate-pulse">
+                        {userMessages.length}
+                      </span>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+            activeId={viewTab}
+            onChange={(id) => setViewTab(id as 'CONTROLS' | 'MESSAGES')}
+            className="!flex !gap-1.5 !bg-slate-950 !p-1.5 !rounded-lg !border-slate-800 !border mb-2 sm:mb-3 !shadow-none"
+          />
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
             <h3 className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2 pl-1 flex justify-between items-center">
@@ -259,10 +278,11 @@ export function OperatorPage({ initialMachineId }: OperatorPageProps) {
                                     <p className="text-[9px] text-slate-400 font-black uppercase text-center tracking-wider pt-2">Historial de Turno Actual</p>
                                 </div>
                             ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-4">
-                                    <Box className="w-6 h-6 sm:w-8 sm:h-8 mb-2 opacity-40" />
-                                    <div className="text-[10px] font-black uppercase tracking-wider">Sin registros</div>
-                                </div>
+                                <EmptyState
+                                  icon={<Box />}
+                                  message="Sin registros"
+                                  className="flex-1 py-4 [&>div]:[&>svg]:w-8 [&>div]:[&>svg]:h-8"
+                                />
                             )}
                         </div>
                     </div>
@@ -274,16 +294,20 @@ export function OperatorPage({ initialMachineId }: OperatorPageProps) {
                         <div className="bg-slate-900 p-2 sm:p-3 lg:p-5 rounded-lg sm:rounded-xl h-full flex flex-col relative overflow-hidden shadow min-h-0">
                             
                             {!activeJob && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-3 sm:p-4 text-center">
-                                    <Box className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 mb-2 sm:mb-3 opacity-10 animate-pulse text-slate-600" />
-                                    <h3 className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-400 mb-2">Cámara de Trabajo Vacía</h3>
-                                    <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Cargue una orden desde &quot;Futuro&quot; para comenzar.</p>
-                                    <p className="text-[10px] sm:text-xs text-slate-400">
-                                        Asigne órdenes desde{' '}
-                                        <Link to="/orders" className="text-blue-400 hover:text-blue-300 underline font-bold">Producción</Link>
-                                        {' '}o{' '}
-                                        <Link to="/projects" className="text-blue-400 hover:text-blue-300 underline font-bold">Proyectos</Link>.
-                                    </p>
+                                <div className="absolute inset-0 z-0 p-3 sm:p-4">
+                                    <EmptyState
+                                      icon={<Box className="animate-pulse text-slate-600" />}
+                                      message="Cámara de Trabajo Vacía"
+                                      description={
+                                        <>
+                                          Cargue una orden desde &quot;Futuro&quot; para comenzar. Asigne órdenes desde{' '}
+                                          <Link to="/orders" className="text-blue-400 hover:text-blue-300 underline font-bold">Producción</Link>
+                                          {' '}o{' '}
+                                          <Link to="/projects" className="text-blue-400 hover:text-blue-300 underline font-bold">Proyectos</Link>.
+                                        </>
+                                      }
+                                      className="h-full [&>div]:[&>svg]:w-12 [&>div]:[&>svg]:h-12"
+                                    />
                                 </div>
                             )}
 
@@ -408,16 +432,19 @@ export function OperatorPage({ initialMachineId }: OperatorPageProps) {
                                     <p className="text-[9px] text-slate-400 font-black uppercase text-center tracking-wider pt-2">Tareas en Espera</p>
                                 </div>
                             ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-4 sm:py-6 text-center px-3">
-                                    <Clock className="w-6 h-6 sm:w-8 sm:h-8 mb-2 opacity-40" />
-                                    <div className="text-[10px] font-black uppercase tracking-wider mb-1">Cola vacía</div>
-                                    <p className="text-[10px] text-slate-400">
-                                        Asigne órdenes desde{' '}
-                                        <Link to="/orders" className="text-blue-400 hover:text-blue-300 underline font-bold">Producción</Link>
-                                        {' '}o{' '}
-                                        <Link to="/projects" className="text-blue-400 hover:text-blue-300 underline font-bold">Proyectos</Link>.
-                                    </p>
-                                </div>
+                                <EmptyState
+                                  icon={<Clock />}
+                                  message="Cola vacía"
+                                  description={
+                                    <>
+                                      Asigne órdenes desde{' '}
+                                      <Link to="/orders" className="text-blue-400 hover:text-blue-300 underline font-bold">Producción</Link>
+                                      {' '}o{' '}
+                                      <Link to="/projects" className="text-blue-400 hover:text-blue-300 underline font-bold">Proyectos</Link>.
+                                    </>
+                                  }
+                                  className="flex-1 py-4 sm:py-6 px-3 [&>div]:[&>svg]:w-8 [&>div]:[&>svg]:h-8"
+                                />
                             )}
                         </div>
                     </div>
@@ -427,10 +454,11 @@ export function OperatorPage({ initialMachineId }: OperatorPageProps) {
               /* TAB DE MENSAJERÍA */
               <div className="space-y-2 sm:space-y-3 overflow-y-auto max-h-full pr-1 sm:pr-2 custom-scrollbar flex-1 min-h-0">
                 {userMessages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-slate-500">
-                        <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 opacity-40" />
-                        <p className="font-black uppercase tracking-wider text-xs sm:text-sm text-slate-400">Bandeja de Entrada Vacía</p>
-                    </div>
+                    <EmptyState
+                      icon={<MessageSquare />}
+                      message="Bandeja de Entrada Vacía"
+                      className="py-8 sm:py-12 [&>div]:[&>svg]:w-10 [&>div]:[&>svg]:h-10"
+                    />
                 )}
                 {userMessages.slice().reverse().map(m => (
                   <div key={m.id} className={`p-2.5 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl border transition-all ${m.to === 'ALL' ? 'bg-blue-600/10 border-blue-500/30 shadow shadow-blue-600/10' : 'bg-slate-900 border-slate-800'}`}>
@@ -467,10 +495,11 @@ export function OperatorPage({ initialMachineId }: OperatorPageProps) {
             )}
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-900/40 border-2 border-dashed border-slate-800 rounded-lg sm:rounded-xl animate-pulse m-2 sm:m-4">
-            <Settings className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 mb-2 sm:mb-3 opacity-30 animate-spin-slow" />
-            <p className="font-black uppercase tracking-wider text-sm sm:text-base lg:text-lg">Seleccione una Estación</p>
-          </div>
+          <EmptyState
+            icon={<Settings className="animate-spin-slow" />}
+            message="Seleccione una Estación"
+            className="h-full text-slate-400 bg-slate-900/40 border-2 border-dashed border-slate-800 rounded-lg sm:rounded-xl animate-pulse m-2 sm:m-4 [&>div]:[&>svg]:w-12 [&>div]:[&>svg]:h-12"
+          />
         )}
       </main>
     </div>

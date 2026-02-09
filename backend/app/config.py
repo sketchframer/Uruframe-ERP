@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     jwt_secret: str = "change-me-in-production"
     database_path: str = "data/structura.db"
-    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.0.121:3000"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.0.127:3000"]
 
     @field_validator("cors_origins", mode="after")
     @classmethod

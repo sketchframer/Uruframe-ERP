@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Client } from '@/shared/types';
 import { useClientStore } from '@/entities/client';
 import { useProjectStore } from '@/entities/project';
+import { EmptyState, TwoColumnLayout, SelectableList, Button, Input } from '@/shared/ui';
 import { Users, Mail, Phone, Plus, Save, Trash2, Building } from 'lucide-react';
 
 export function ClientsPage() {
@@ -39,38 +40,34 @@ export function ClientsPage() {
   const clientProjects = selectedClient ? projects.filter(p => p.clientId === selectedClient.id) : [];
 
   return (
-    <div className="flex h-full gap-6 animate-fade-in">
-      {/* Sidebar List */}
-      <div className="w-1/3 bg-slate-800 rounded-xl border border-slate-700 flex flex-col">
-        <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-          <h3 className="font-bold text-white flex items-center">
-            <Users className="w-5 h-5 mr-2 text-blue-400"/> Cartera de Clientes
-          </h3>
-          <button onClick={handleNew} className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg">
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="overflow-y-auto flex-1 p-2 space-y-2">
-          {clients.map(client => (
-            <button
-              key={client.id}
-              onClick={() => handleSelect(client)}
-              className={`w-full text-left p-3 rounded-lg border transition-all ${
-                selectedClient?.id === client.id 
-                ? 'bg-blue-900/30 border-blue-500' 
-                : 'bg-slate-700/20 border-transparent hover:bg-slate-700/50'
-              }`}
-            >
+    <TwoColumnLayout
+      className="animate-fade-in"
+      sidebarChildren={
+        <SelectableList<Client>
+          items={clients}
+          selectedId={selectedClient?.id ?? null}
+          onSelect={(id) => handleSelect(clients.find((c) => c.id === id)!)}
+          getItemId={(c) => c.id}
+          title={
+            <>
+              <Users className="w-5 h-5 mr-2 text-blue-400" /> Cartera de Clientes
+            </>
+          }
+          action={
+            <Button variant="primary" size="sm" onClick={handleNew}>
+              <Plus className="w-4 h-4" />
+            </Button>
+          }
+          renderItem={(client) => (
+            <>
               <div className="font-bold text-white">{client.name}</div>
               <div className="text-xs text-slate-400">{client.contactPerson}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Detail View */}
-      <div className="flex-1 bg-slate-800 rounded-xl border border-slate-700 p-8">
-        {isEditing || selectedClient ? (
+            </>
+          )}
+        />
+      }
+      mainChildren={
+        isEditing || selectedClient ? (
           <div className="space-y-8">
             <div className="flex justify-between items-start border-b border-slate-700 pb-4">
               <h2 className="text-2xl font-bold text-white">
@@ -78,53 +75,54 @@ export function ClientsPage() {
               </h2>
               <div className="flex gap-2">
                 {isEditing ? (
-                   <button onClick={handleSave} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded flex items-center">
-                     <Save className="w-4 h-4 mr-2" /> Guardar
-                   </button>
+                  <Button variant="primary" size="sm" leftIcon={<Save className="w-4 h-4" />} onClick={handleSave}>
+                    Guardar
+                  </Button>
                 ) : (
-                   <>
-                     <button onClick={() => setIsEditing(true)} className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded">
-                        Editar
-                     </button>
-                     <button onClick={() => clientStore.delete(selectedClient!.id)} className="bg-red-900/50 hover:bg-red-900 text-red-200 px-4 py-2 rounded">
-                        <Trash2 className="w-4 h-4" />
-                     </button>
-                   </>
+                  <>
+                    <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
+                      Editar
+                    </Button>
+                    <Button variant="danger" size="sm" leftIcon={<Trash2 className="w-4 h-4" />} onClick={() => selectedClient && clientStore.delete(selectedClient.id)} />
+                  </>
                 )}
               </div>
             </div>
 
             {isEditing ? (
               <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs text-slate-500 uppercase mb-1">Razón Social / Nombre</label>
-                  <input className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" 
-                    value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 uppercase mb-1">ID Tributario (CUIT/RUT)</label>
-                  <input className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" 
-                    value={formData.taxId || ''} onChange={e => setFormData({...formData, taxId: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 uppercase mb-1">Persona de Contacto</label>
-                  <input className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" 
-                    value={formData.contactPerson || ''} onChange={e => setFormData({...formData, contactPerson: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 uppercase mb-1">Email</label>
-                  <input className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" 
-                    value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 uppercase mb-1">Teléfono</label>
-                  <input className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" 
-                    value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                </div>
-                 <div className="col-span-2">
-                  <label className="block text-xs text-slate-500 uppercase mb-1">Dirección Física</label>
-                  <input className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white" 
-                    value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
+                <Input
+                  label="Razón Social / Nombre"
+                  value={formData.name || ''}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+                <Input
+                  label="ID Tributario (CUIT/RUT)"
+                  value={formData.taxId || ''}
+                  onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                />
+                <Input
+                  label="Persona de Contacto"
+                  value={formData.contactPerson || ''}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  value={formData.email || ''}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+                <Input
+                  label="Teléfono"
+                  value={formData.phone || ''}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+                <div className="col-span-2">
+                  <Input
+                    label="Dirección Física"
+                    value={formData.address || ''}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
                 </div>
               </div>
             ) : (
@@ -166,12 +164,13 @@ export function ClientsPage() {
             )}
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500">
-            <Users className="w-16 h-16 mb-4 opacity-20" />
-            <p>Seleccione un cliente para ver detalles o gestionar.</p>
-          </div>
-        )}
-      </div>
-    </div>
+          <EmptyState
+            icon={<Users />}
+            message="Seleccione un cliente para ver detalles o gestionar."
+            className="h-full"
+          />
+        )
+      }
+    />
   );
 }

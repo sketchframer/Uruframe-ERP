@@ -7,9 +7,10 @@ import { useInventoryStore } from '@/entities/inventory';
 import { useProjectAccessoryStore } from '@/entities/projectAccessory';
 import { useClientStore } from '@/entities/client';
 import { INITIAL_CATALOG } from '@/shared/constants';
+import { Modal, ModalFooter, Button, EmptyState, TwoColumnLayout, SelectableList, Tabs, StatCard } from '@/shared/ui';
 import {
   Calendar, Clock, Plus, Save, Briefcase, Settings, PenTool, Package, Trash2, CheckSquare,
-  BarChart3, Layout, Hammer, Activity, Layers, CheckCircle, Upload, Archive, PaintBucket, Info, X
+  BarChart3, Layout, Hammer, Activity, Layers, CheckCircle, Upload, Archive, PaintBucket, Info
 } from 'lucide-react';
 
 export function ProjectsPage() {
@@ -157,27 +158,18 @@ export function ProjectsPage() {
       return (
           <div className="p-6 space-y-8 animate-fade-in h-full overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
-                      <div className="text-slate-400 text-xs uppercase font-bold">Proyectos Activos</div>
-                      <div className="text-3xl font-bold text-white mt-1">{activeProjects}</div>
-                  </div>
-                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
-                      <div className="text-slate-400 text-xs uppercase font-bold">Proyectos Atrasados</div>
-                      <div className="text-3xl font-bold text-red-400 mt-1">{delayedProjects}</div>
-                  </div>
-                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
-                      <div className="text-slate-400 text-xs uppercase font-bold">Avance Global Órdenes</div>
-                      <div className="text-3xl font-bold text-blue-400 mt-1">{Math.round((completedJobs/totalJobs)*100) || 0}%</div>
-                  </div>
-                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
-                       <div className="text-slate-400 text-xs uppercase font-bold">Próxima Entrega</div>
-                       <div className="text-xl font-bold text-white mt-2">
-                           {projects
-                            .filter(p => p.status !== 'COMPLETED' && p.status !== 'ARCHIVED')
-                            .sort((a,b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())[0]?.deadline || 'N/A'
-                           }
-                       </div>
-                  </div>
+                  <StatCard label="Proyectos Activos" value={activeProjects} />
+                  <StatCard label="Proyectos Atrasados" value={delayedProjects} variant="warning" />
+                  <StatCard label="Avance Global Órdenes" value={`${Math.round((completedJobs / totalJobs) * 100) || 0}%`} variant="success" />
+                  <StatCard
+                    label="Próxima Entrega"
+                    value={
+                      projects
+                        .filter((p) => p.status !== 'COMPLETED' && p.status !== 'ARCHIVED')
+                        .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())[0]?.deadline ?? 'N/A'
+                    }
+                    className="[&>div:last-child]:text-xl [&>div:last-child]:mt-2"
+                  />
               </div>
 
               <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-700">
@@ -219,81 +211,79 @@ export function ProjectsPage() {
   const isProjectReadyToDeliver = selectedProject && projectJobs.length > 0 && projectJobs.every(j => j.status === 'COMPLETED');
 
   return (
-    <div className="h-full flex flex-col md:flex-row gap-6 animate-fade-in pb-4">
-      
-      {/* Sidebar List */}
-      <div className="w-full md:w-1/3 lg:w-1/4 bg-slate-800 rounded-xl border border-slate-700 flex flex-col">
-          <div className="p-4 border-b border-slate-700 flex flex-col gap-3">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold text-slate-200">Proyectos</h3>
-                <button 
-                    onClick={handleCreateNewProject}
-                    className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex bg-slate-900 rounded-lg p-1">
-                  <button 
-                    onClick={() => setViewMode('LIST')}
-                    className={`flex-1 text-xs py-1.5 rounded flex justify-center items-center ${viewMode === 'LIST' ? 'bg-slate-700 text-white' : 'text-slate-500'}`}
-                  >
-                      <Layout className="w-3 h-3 mr-1"/> Lista
-                  </button>
-                  <button 
-                    onClick={() => { setViewMode('DASHBOARD'); setSelectedProjectId(null); }}
-                    className={`flex-1 text-xs py-1.5 rounded flex justify-center items-center ${viewMode === 'DASHBOARD' ? 'bg-slate-700 text-white' : 'text-slate-500'}`}
-                  >
-                      <BarChart3 className="w-3 h-3 mr-1"/> Dashboard
-                  </button>
-              </div>
-              <button 
-                onClick={() => setShowArchived(!showArchived)}
-                className={`text-xs flex items-center justify-center p-2 rounded border ${showArchived ? 'bg-purple-900/30 border-purple-500 text-purple-300' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}
-              >
-                  <Archive className="w-3 h-3 mr-2" />
-                  {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
-              </button>
+    <>
+    <TwoColumnLayout
+      className="h-full animate-fade-in pb-4"
+      sidebarClassName="w-full md:w-1/3 lg:w-1/4"
+      mainClassName="p-0 overflow-hidden"
+      sidebarChildren={
+        <>
+          <div className="p-4 border-b border-slate-700 flex flex-col gap-3 shrink-0">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-slate-200">Proyectos</h3>
+              <Button variant="primary" size="sm" onClick={handleCreateNewProject}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <Tabs
+              tabs={[
+                { id: 'LIST', label: 'Lista', icon: <Layout className="w-3 h-3" /> },
+                { id: 'DASHBOARD', label: 'Dashboard', icon: <BarChart3 className="w-3 h-3" /> },
+              ]}
+              activeId={viewMode}
+              onChange={(id) => {
+                setViewMode(id as 'LIST' | 'DASHBOARD');
+                if (id === 'DASHBOARD') setSelectedProjectId(null);
+              }}
+              className="!p-1 !rounded-lg !bg-slate-900"
+            />
+            <button
+              type="button"
+              onClick={() => setShowArchived(!showArchived)}
+              className={`text-xs flex items-center justify-center p-2 rounded border ${showArchived ? 'bg-purple-900/30 border-purple-500 text-purple-300' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}
+            >
+              <Archive className="w-3 h-3 mr-2" />
+              {showArchived ? 'Ocultar Archivados' : 'Ver Archivados'}
+            </button>
           </div>
-          
-          <div className="overflow-y-auto flex-1 p-2 space-y-2">
-              {visibleProjects.length === 0 && <p className="text-center text-slate-500 text-xs py-4">No hay proyectos.</p>}
-              {visibleProjects.map(p => {
-                  const progress = calculateProgress(p.id);
-                  const clientName = clients.find(c => c.id === p.clientId)?.name || 'Sin Cliente';
-                  return (
-                    <button 
-                        key={p.id}
-                        onClick={() => handleSelectProject(p)}
-                        className={`w-full text-left p-3 rounded-lg border transition-all ${
-                            selectedProjectId === p.id 
-                            ? 'bg-blue-900/30 border-blue-500/50' 
-                            : 'bg-slate-700/20 border-transparent hover:bg-slate-700/50'
-                        }`}
-                    >
-                        <div className="font-bold text-slate-200 text-sm truncate">{p.name}</div>
-                        <div className="text-xs text-slate-500 mb-2 truncate">{clientName}</div>
-                        <div className="flex items-center gap-2">
-                             <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                 <div className="h-full bg-green-500" style={{ width: `${progress}%` }}></div>
-                             </div>
-                             <span className="text-xs text-slate-400">{progress}%</span>
-                        </div>
-                    </button>
-                  );
-              })}
-          </div>
-      </div>
-
-      {/* Main Area */}
-      <div className="flex-1 bg-slate-800 rounded-xl border border-slate-700 flex flex-col overflow-hidden relative">
+          {visibleProjects.length === 0 ? (
+            <p className="text-center text-slate-500 text-xs py-4 p-2">No hay proyectos.</p>
+          ) : (
+            <SelectableList<Project>
+              items={visibleProjects}
+              selectedId={selectedProjectId}
+              onSelect={(id) => handleSelectProject(visibleProjects.find((p) => p.id === id)!)}
+              getItemId={(p) => p.id}
+              renderItem={(p) => {
+                const progress = calculateProgress(p.id);
+                const clientName = clients.find((c) => c.id === p.clientId)?.name || 'Sin Cliente';
+                return (
+                  <>
+                    <div className="font-bold text-slate-200 text-sm truncate">{p.name}</div>
+                    <div className="text-xs text-slate-500 mb-2 truncate">{clientName}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: `${progress}%` }} />
+                      </div>
+                      <span className="text-xs text-slate-400">{progress}%</span>
+                    </div>
+                  </>
+                );
+              }}
+            />
+          )}
+        </>
+      }
+      mainChildren={
+        <div className="flex flex-col h-full overflow-hidden relative">
           
           {viewMode === 'DASHBOARD' ? renderDashboard() : (
               !selectedProject ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                    <Briefcase className="w-16 h-16 mb-4 opacity-20" />
-                    <p>Seleccione un proyecto para ver sus detalles</p>
-                </div>
+                <EmptyState
+                  icon={<Briefcase />}
+                  message="Seleccione un proyecto para ver sus detalles"
+                  className="h-full"
+                />
             ) : (
                 <div className="flex flex-col h-full overflow-y-auto">
                     {/* Header Info */}
@@ -642,41 +632,42 @@ export function ProjectsPage() {
                 </div>
             )
           )}
-      </div>
+        </div>
+      }
+    />
 
       {/* Modal Explicación PENDING */}
-      {statusExplanation && (
-          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-              <div className="bg-slate-800 border-2 border-slate-700 p-10 rounded-[3rem] w-full max-w-lg shadow-[0_20px_100px_rgba(0,0,0,0.5)]">
-                  <div className="flex justify-between items-center mb-8">
-                      <div className="bg-blue-600/20 p-3 rounded-2xl"><Info className="text-blue-500" size={32}/></div>
-                      <button onClick={() => setStatusExplanation(null)} className="text-slate-500 hover:text-white"><X size={24}/></button>
-                  </div>
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">Estatus: Pendiente de Inicio</h3>
-                  <div className="space-y-6">
-                      <p className="text-slate-300 font-medium leading-relaxed">
-                          La orden de trabajo <span className="text-blue-400 font-black">"{statusExplanation.productName}"</span> ya está volcada al taller. 
-                          Ha sido asignada a la unidad <span className="text-white font-bold">{machines.find(m => m.id === statusExplanation.assignedMachineId)?.name}</span>.
-                      </p>
-                      <div className="p-5 bg-slate-900 rounded-[1.5rem] border border-slate-700">
-                          <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Próximos Pasos del Operario:</div>
-                          <ol className="text-sm text-slate-400 space-y-3 font-bold">
-                              <li className="flex gap-3"><span className="text-blue-500">1.</span> Iniciar sesión en la terminal del taller.</li>
-                              <li className="flex gap-3"><span className="text-blue-500">2.</span> Cargar la orden desde la cola lateral.</li>
-                              <li className="flex gap-3"><span className="text-blue-500">3.</span> Presionar "INICIAR" para comenzar el conteo.</li>
-                          </ol>
-                      </div>
-                  </div>
-                  <button 
-                    onClick={() => setStatusExplanation(null)}
-                    className="w-full bg-blue-600 py-5 rounded-2xl text-white font-black uppercase text-sm mt-8 shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
-                  >
-                      Entendido
-                  </button>
-              </div>
-          </div>
-      )}
-
-    </div>
+      <Modal
+        isOpen={!!statusExplanation}
+        onClose={() => setStatusExplanation(null)}
+        title="Estatus: Pendiente de Inicio"
+        size="md"
+      >
+        {statusExplanation && (
+          <>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-blue-600/20 p-3 rounded-2xl"><Info className="text-blue-500" size={32}/></div>
+              <p className="text-slate-300 font-medium leading-relaxed">
+                La orden de trabajo <span className="text-blue-400 font-black">&quot;{statusExplanation.productName}&quot;</span> ya está volcada al taller.
+                Ha sido asignada a la unidad <span className="text-white font-bold">{machines.find(m => m.id === statusExplanation.assignedMachineId)?.name}</span>.
+              </p>
+            </div>
+            <div className="p-5 bg-slate-900 rounded-[1.5rem] border border-slate-700">
+              <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Próximos Pasos del Operario:</div>
+              <ol className="text-sm text-slate-400 space-y-3 font-bold">
+                <li className="flex gap-3"><span className="text-blue-500">1.</span> Iniciar sesión en la terminal del taller.</li>
+                <li className="flex gap-3"><span className="text-blue-500">2.</span> Cargar la orden desde la cola lateral.</li>
+                <li className="flex gap-3"><span className="text-blue-500">3.</span> Presionar &quot;INICIAR&quot; para comenzar el conteo.</li>
+              </ol>
+            </div>
+            <ModalFooter>
+              <Button variant="primary" className="w-full" onClick={() => setStatusExplanation(null)}>
+                Entendido
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </Modal>
+    </>
   );
 }

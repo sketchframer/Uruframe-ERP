@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Settings, Users, Trash2, Plus, UserCheck, Monitor, MessageSquare, Send, X, Cpu, Edit3 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Modal, ModalFooter, Button, PageHeader, Tabs } from '@/shared/ui';
+import { Settings, Users, Trash2, Plus, UserCheck, Monitor, MessageSquare, Send, Cpu, Edit3 } from 'lucide-react';
 import type { User, Machine } from '@/shared/types';
 import { MachineStatus, Role } from '@/shared/types';
 import { useUserStore } from '@/entities/user';
@@ -43,6 +44,9 @@ export function SettingsPage({ initialTab = 'general' }: SettingsPageProps) {
 
   const [msgContent, setMsgContent] = useState('');
   const [msgTo, setMsgTo] = useState('ALL');
+
+  const handleCloseUserForm = useCallback(() => setShowUserForm(false), []);
+  const handleCloseMachineForm = useCallback(() => setShowMachineForm(false), []);
 
   useEffect(() => {
       setActiveTab(tab);
@@ -136,24 +140,17 @@ export function SettingsPage({ initialTab = 'general' }: SettingsPageProps) {
   return (
     <div className="h-full flex flex-col space-y-6 animate-fade-in max-w-6xl mx-auto">
       
-      {/* Selector de Pestañas */}
-      <div className="flex flex-wrap gap-2 bg-slate-800 p-1.5 rounded-2xl border border-slate-700 w-fit shadow-xl">
-        {[
-            { id: 'GENERAL' as const, label: 'Sistema', icon: <Settings size={14}/> },
-            { id: 'USERS' as const, label: 'Usuarios', icon: <Users size={14}/> },
-            { id: 'MACHINES' as const, label: 'Máquinas', icon: <Cpu size={14}/> },
-            { id: 'WORKFORCE' as const, label: 'Fuerza de Trabajo', icon: <UserCheck size={14}/> },
-            { id: 'MESSAGES' as const, label: 'Mensajería', icon: <MessageSquare size={14}/> },
-        ].map((tabItem) => (
-             <button 
-                key={tabItem.id}
-                onClick={() => setActiveTab(tabItem.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === tabItem.id ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
-            >
-                {tabItem.icon} {tabItem.label}
-            </button>
-        ))}
-      </div>
+      <Tabs
+        tabs={[
+          { id: 'GENERAL', label: 'Sistema', icon: <Settings size={14} /> },
+          { id: 'USERS', label: 'Usuarios', icon: <Users size={14} /> },
+          { id: 'MACHINES', label: 'Máquinas', icon: <Cpu size={14} /> },
+          { id: 'WORKFORCE', label: 'Fuerza de Trabajo', icon: <UserCheck size={14} /> },
+          { id: 'MESSAGES', label: 'Mensajería', icon: <MessageSquare size={14} /> },
+        ]}
+        activeId={activeTab}
+        onChange={(id) => setActiveTab(id as SettingsTab)}
+      />
 
       <div className="flex-1 bg-slate-800 rounded-[2.5rem] border border-slate-700 p-8 overflow-y-auto shadow-2xl relative">
         
@@ -198,15 +195,21 @@ export function SettingsPage({ initialTab = 'general' }: SettingsPageProps) {
         {/* PESTAÑA: USUARIOS */}
         {activeTab === 'USERS' && (
             <div className="animate-fade-in">
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Gestión de Personal</h2>
-                        <p className="text-slate-500 text-sm">Administre el acceso de operarios y supervisores.</p>
-                    </div>
-                    <button onClick={() => { setEditingUser(null); setUserFormData({ name: '', role: 'OPERATOR', pin: '' }); setShowUserForm(true); }} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 shadow-lg shadow-blue-600/20">
-                        <Plus size={16}/> Nuevo Usuario
-                    </button>
-                </div>
+                <PageHeader
+                  title="Gestión de Personal"
+                  description="Administre el acceso de operarios y supervisores."
+                  action={
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      leftIcon={<Plus size={16} />}
+                      onClick={() => { setEditingUser(null); setUserFormData({ name: '', role: 'OPERATOR', pin: '' }); setShowUserForm(true); }}
+                    >
+                      Nuevo Usuario
+                    </Button>
+                  }
+                  className="mb-8"
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {users.map(user => (
@@ -236,41 +239,46 @@ export function SettingsPage({ initialTab = 'general' }: SettingsPageProps) {
                 </div>
 
                 {/* Modal Usuario */}
-                {showUserForm && (
-                    <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-slate-800 border border-slate-700 p-8 rounded-[2rem] w-full max-w-md shadow-2xl">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-black text-white uppercase">{editingUser ? 'Editar Usuario' : 'Crear Usuario'}</h3>
-                                <button onClick={() => setShowUserForm(false)} className="text-slate-500 hover:text-white"><X/></button>
-                            </div>
-                            <div className="space-y-4">
-                                <input type="text" placeholder="Nombre Completo" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={userFormData.name} onChange={e => setUserFormData({...userFormData, name: e.target.value})}/>
-                                <select className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={userFormData.role} onChange={e => setUserFormData({...userFormData, role: e.target.value as Role})}>
-                                    <option value="OPERATOR">Operario</option>
-                                    <option value="SUPERVISOR">Supervisor</option>
-                                    <option value="ADMIN">Administrador</option>
-                                </select>
-                                <input type="password" placeholder="PIN (4 dígitos)" maxLength={4} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white text-center text-2xl tracking-widest" value={userFormData.pin} onChange={e => setUserFormData({...userFormData, pin: e.target.value})}/>
-                                <button onClick={handleSaveUser} className="w-full bg-blue-600 py-4 rounded-xl text-white font-black uppercase mt-4">{editingUser ? 'Actualizar' : 'Guardar'}</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <Modal
+                  isOpen={showUserForm}
+                  onClose={handleCloseUserForm}
+                  title={editingUser ? 'Editar Usuario' : 'Crear Usuario'}
+                  size="sm"
+                >
+                  <div className="space-y-4">
+                    <input type="text" placeholder="Nombre Completo" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={userFormData.name} onChange={e => setUserFormData({...userFormData, name: e.target.value})}/>
+                    <select className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={userFormData.role} onChange={e => setUserFormData({...userFormData, role: e.target.value as Role})}>
+                      <option value="OPERATOR">Operario</option>
+                      <option value="SUPERVISOR">Supervisor</option>
+                      <option value="ADMIN">Administrador</option>
+                    </select>
+                    <input type="password" placeholder="PIN (4 dígitos)" maxLength={4} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white text-center text-2xl tracking-widest" value={userFormData.pin} onChange={e => setUserFormData({...userFormData, pin: e.target.value})}/>
+                  </div>
+                  <ModalFooter>
+                    <Button variant="primary" className="w-full" onClick={handleSaveUser}>{editingUser ? 'Actualizar' : 'Guardar'}</Button>
+                  </ModalFooter>
+                </Modal>
             </div>
         )}
 
         {/* PESTAÑA: MÁQUINAS */}
         {activeTab === 'MACHINES' && (
             <div className="animate-fade-in">
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Parque Industrial</h2>
-                        <p className="text-slate-500 text-sm">Gestione las unidades de producción de la fábrica.</p>
-                    </div>
-                    <button onClick={() => { setEditingMachine(null); setMachineFormData({ name: '', type: 'CONFORMADORA', category: 'STANDARD', isActive: true, operatorIds: [] }); setShowMachineForm(true); }} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 shadow-lg shadow-blue-600/20">
-                        <Plus size={16}/> Nueva Máquina
-                    </button>
-                </div>
+                <PageHeader
+                  title="Parque Industrial"
+                  description="Gestione las unidades de producción de la fábrica."
+                  action={
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      leftIcon={<Plus size={16} />}
+                      onClick={() => { setEditingMachine(null); setMachineFormData({ name: '', type: 'CONFORMADORA', category: 'STANDARD', isActive: true, operatorIds: [] }); setShowMachineForm(true); }}
+                    >
+                      Nueva Máquina
+                    </Button>
+                  }
+                  className="mb-8"
+                />
 
                 <div className="space-y-3">
                     {machines.map(machine => (
@@ -307,34 +315,33 @@ export function SettingsPage({ initialTab = 'general' }: SettingsPageProps) {
                 </div>
 
                 {/* Modal Máquina */}
-                {showMachineForm && (
-                    <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-slate-800 border border-slate-700 p-8 rounded-[2rem] w-full max-w-lg shadow-2xl">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-black text-white uppercase">{editingMachine ? 'Editar Máquina' : 'Nueva Unidad'}</h3>
-                                <button onClick={() => setShowMachineForm(false)} className="text-slate-500 hover:text-white"><X/></button>
-                            </div>
-                            <div className="space-y-4">
-                                <input type="text" placeholder="Nombre (Ej: Conformadora C-200)" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.name} onChange={e => setMachineFormData({...machineFormData, name: e.target.value})}/>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <select className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.type} onChange={e => setMachineFormData({...machineFormData, type: e.target.value as Machine['type']})}>
-                                        <option value="CONFORMADORA">Conformadora</option>
-                                        <option value="HERRERIA">Herrería</option>
-                                        <option value="SOLDADURA">Soldadura</option>
-                                        <option value="PINTURA">Pintura</option>
-                                        <option value="PANELIZADO">Panelizado</option>
-                                    </select>
-                                    <select className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.category} onChange={e => setMachineFormData({...machineFormData, category: e.target.value as Machine['category']})}>
-                                        <option value="STANDARD">Standard (Perfiles)</option>
-                                        <option value="STRUCTURAL">Estructural (Heavy)</option>
-                                    </select>
-                                </div>
-                                <input type="text" placeholder="Marca (Ej: Pinnacle, Cunmac)" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.brand} onChange={e => setMachineFormData({...machineFormData, brand: e.target.value})}/>
-                                <button onClick={handleSaveMachine} className="w-full bg-blue-600 py-4 rounded-xl text-white font-black uppercase mt-4">{editingMachine ? 'Actualizar' : 'Registrar Máquina'}</button>
-                            </div>
-                        </div>
+                <Modal
+                  isOpen={showMachineForm}
+                  onClose={handleCloseMachineForm}
+                  title={editingMachine ? 'Editar Máquina' : 'Nueva Unidad'}
+                  size="lg"
+                >
+                  <div className="space-y-4">
+                    <input type="text" placeholder="Nombre (Ej: Conformadora C-200)" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.name} onChange={e => setMachineFormData({...machineFormData, name: e.target.value})}/>
+                    <div className="grid grid-cols-2 gap-4">
+                      <select className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.type} onChange={e => setMachineFormData({...machineFormData, type: e.target.value as Machine['type']})}>
+                        <option value="CONFORMADORA">Conformadora</option>
+                        <option value="HERRERIA">Herrería</option>
+                        <option value="SOLDADURA">Soldadura</option>
+                        <option value="PINTURA">Pintura</option>
+                        <option value="PANELIZADO">Panelizado</option>
+                      </select>
+                      <select className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.category} onChange={e => setMachineFormData({...machineFormData, category: e.target.value as Machine['category']})}>
+                        <option value="STANDARD">Standard (Perfiles)</option>
+                        <option value="STRUCTURAL">Estructural (Heavy)</option>
+                      </select>
                     </div>
-                )}
+                    <input type="text" placeholder="Marca (Ej: Pinnacle, Cunmac)" className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white" value={machineFormData.brand} onChange={e => setMachineFormData({...machineFormData, brand: e.target.value})}/>
+                  </div>
+                  <ModalFooter>
+                    <Button variant="primary" className="w-full" onClick={handleSaveMachine}>{editingMachine ? 'Actualizar' : 'Registrar Máquina'}</Button>
+                  </ModalFooter>
+                </Modal>
             </div>
         )}
 
