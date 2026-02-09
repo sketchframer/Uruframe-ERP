@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
     preview: {
       port: 4173,
       host: '0.0.0.0',
+      allowedHosts: ['uruframe', 'uruframe.local'],
     },
     plugins: [react(), tailwindcss()],
     define: {
