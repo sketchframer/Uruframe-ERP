@@ -268,7 +268,7 @@ class ProjectCreate(BaseModel):
 
     id: str | None = None
     name: str = Field(min_length=1, max_length=256)
-    client_id: str
+    client_id: str | None = None
     deadline: str  # ISO date string, validated in serialization
     status: ProjectStatus = ProjectStatus.PLANNING
     description: str | None = None

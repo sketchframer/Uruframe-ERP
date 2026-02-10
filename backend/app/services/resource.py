@@ -150,6 +150,10 @@ def resource_create(db: Session, resource: str, body: dict[str, Any]) -> dict[st
     table = RESOURCE_TO_TABLE[resource]
     body_snake = body_to_snake(body)
 
+    # Normalize empty client_id to None for projects
+    if resource == "projects" and not body_snake.get("client_id"):
+        body_snake["client_id"] = None
+
     if not body_snake.get("id"):
         body_snake["id"] = f"{table.upper()[:3]}-{uuid.uuid4().hex[:8]}"
 

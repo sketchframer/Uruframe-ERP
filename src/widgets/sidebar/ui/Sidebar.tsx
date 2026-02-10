@@ -19,7 +19,10 @@ import { useAppNavigate } from '@/shared/hooks';
 export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const logout = useUserStore((s) => s.logout);
+  const currentUser = useUserStore((s) => s.currentUser);
   const { toLogin, toOperator } = useAppNavigate();
+
+  const isOperator = currentUser?.role === 'OPERATOR';
 
   const handleLogout = () => {
     logout();
@@ -38,45 +41,51 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        <NavItem
-          icon={<LayoutDashboard size={20} />}
-          label="Dashboard"
-          to="/"
-          exact
-        />
-        <NavItem
-          icon={<ClipboardList size={20} />}
-          label="Proyectos"
-          to="/projects"
-        />
-          <NavItem icon={<ListTodo size={20} />} label="Producción" to="/orders" />
-        <button
-          type="button"
-          onClick={() => toOperator()}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-            pathname.startsWith('/operator')
-            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-          }`}
-        >
-          <MonitorPlay size={20} />
-          <span className="font-bold text-sm uppercase tracking-wider">
-            Terminal
-          </span>
-        </button>
-        
-        <NavItem icon={<Package size={20} />} label="Stock" to="/inventory" />
-        <NavItem icon={<Users size={20} />} label="Clientes" to="/clients" />
-        <NavItem icon={<UserCircle size={20} />} label="Usuarios" to="/users" />
+        {isOperator ? (
+          <button
+            type="button"
+            onClick={() => toOperator()}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              pathname.startsWith('/operator')
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <MonitorPlay size={20} />
+            <span className="font-bold text-sm uppercase tracking-wider">
+              Terminal
+            </span>
+          </button>
+        ) : (
+          <>
+            <NavItem
+              icon={<LayoutDashboard size={20} />}
+              label="Dashboard"
+              to="/"
+              exact
+            />
+            <NavItem
+              icon={<ClipboardList size={20} />}
+              label="Proyectos"
+              to="/projects"
+            />
+            <NavItem icon={<ListTodo size={20} />} label="Producción" to="/orders" />
+            <NavItem icon={<Package size={20} />} label="Stock" to="/inventory" />
+            <NavItem icon={<Users size={20} />} label="Clientes" to="/clients" />
+            <NavItem icon={<UserCircle size={20} />} label="Usuarios" to="/users" />
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-slate-800 space-y-2">
-        <NavItem
-          icon={<Settings size={20} />}
-          label="Ajustes"
-          to="/settings/$tab"
-          params={{ tab: 'general' }}
-        />
+        {!isOperator && (
+          <NavItem
+            icon={<Settings size={20} />}
+            label="Ajustes"
+            to="/settings/$tab"
+            params={{ tab: 'general' }}
+          />
+        )}
         <button
           type="button"
           onClick={handleLogout}

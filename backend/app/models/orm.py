@@ -133,8 +133,8 @@ class Project(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(256), nullable=False)
-    client_id: Mapped[str] = mapped_column(
-        ForeignKey("clients.id"), nullable=False, index=True,
+    client_id: Mapped[str | None] = mapped_column(
+        ForeignKey("clients.id"), nullable=True, index=True,
     )
     deadline: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
@@ -142,7 +142,7 @@ class Project(Base):
     budget: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # relationships
-    client: Mapped[Client] = relationship(back_populates="projects")
+    client: Mapped[Client | None] = relationship(back_populates="projects")
     jobs: Mapped[list[Job]] = relationship(back_populates="project")
     accessories: Mapped[list[ProjectAccessory]] = relationship(back_populates="project")
 
