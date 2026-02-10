@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
       port: 4173,
       host: '0.0.0.0',
       allowedHosts: ['uruframe', 'uruframe.local'],
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
     },
     plugins: [react(), tailwindcss()],
     define: {
